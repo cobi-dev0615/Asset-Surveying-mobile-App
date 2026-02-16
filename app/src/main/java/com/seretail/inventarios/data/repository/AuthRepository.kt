@@ -60,6 +60,24 @@ class AuthRepository @Inject constructor(
         }
     }
 
+    // TODO: Remove before production
+    suspend fun fakeLogin() {
+        val fakeUser = UserEntity(
+            id = 1,
+            usuario = "demo",
+            nombres = "Usuario Demo",
+            email = "demo@seretail.com.mx",
+            rolId = 1,
+            rolNombre = "Super Admin",
+            empresaIds = "1",
+            accesoApp = true,
+        )
+        preferencesManager.saveToken("fake-token-for-testing")
+        preferencesManager.saveUserId(1)
+        userDao.deleteAll()
+        userDao.insert(fakeUser)
+    }
+
     suspend fun logout() {
         try {
             apiService.logout()

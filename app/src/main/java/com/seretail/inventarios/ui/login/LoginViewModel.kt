@@ -34,6 +34,17 @@ class LoginViewModel @Inject constructor(
             _uiState.value = state.copy(error = "Ingresa usuario y contraseña")
             return
         }
+
+        // TODO: Remove fake login before production
+        if (state.usuario == "demo" && state.password == "demo") {
+            viewModelScope.launch {
+                _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+                authRepository.fakeLogin()
+                _uiState.value = _uiState.value.copy(isLoading = false, loginSuccess = true)
+            }
+            return
+        }
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             val result = authRepository.login(state.usuario, state.password)

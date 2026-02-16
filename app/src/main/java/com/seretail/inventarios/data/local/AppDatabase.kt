@@ -44,7 +44,7 @@ import com.seretail.inventarios.data.local.entity.UserEntity
         SyncQueueEntity::class,
         RfidTagEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {

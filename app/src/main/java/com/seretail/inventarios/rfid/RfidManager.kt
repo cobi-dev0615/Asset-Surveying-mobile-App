@@ -5,11 +5,14 @@ import com.rfid.trans.ReadTag
 import com.rfid.trans.TagCallback
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -27,23 +30,28 @@ class RfidManager @Inject constructor() {
 
     private var reader: BaseReader? = null
     private var currentPower: Int = 20
+    private var inventoryJob: Job? = null
 
     fun connect(serialPort: String = "/dev/ttyS4", baudRate: Int = 115200) {
         scope.launch {
             try {
                 _state.value = RfidState.Connecting
                 val baseReader = BaseReader()
-                baseReader.setTagCallback(object : TagCallback {
+                baseReader.SetCallBack(object : TagCallback {
                     override fun tagCallback(tag: ReadTag?) {
                         tag?.let {
                             scope.launch { _tags.emit(it) }
                         }
                     }
 
-                    override fun StopReadCallBack() {}
+                    override fun CRCErrorCallBack(i: Int): Int = 0
+
+                    override fun FinishCallBack() {}
+
+                    override fun tagCallbackFailed(i: Int): Int = 0
                 })
 
-                val result = baseReader.connect(serialPort, baudRate)
+                val result = baseReader.Connect(serialPort, baudRate, 0)
                 if (result == 0) {
                     reader = baseReader
                     _state.value = RfidState.Connected
@@ -59,10 +67,9 @@ class RfidManager @Inject constructor() {
     fun disconnect() {
         scope.launch {
             try {
-                reader?.let {
-                    it.stopInventory()
-                    it.disconnect()
-                }
+                inventoryJob?.cancel()
+                inventoryJob = null
+                reader?.DisConnect()
                 reader = null
                 _state.value = RfidState.Disconnected
             } catch (e: Exception) {
@@ -74,9 +81,22 @@ class RfidManager @Inject constructor() {
     fun startInventory() {
         scope.launch {
             try {
-                reader?.let {
-                    it.startInventory()
+                reader?.let { r ->
                     _state.value = RfidState.Scanning
+                    inventoryJob?.cancel()
+                    inventoryJob = scope.launch {
+                        while (isActive) {
+                            val epcData = ByteArray(4096)
+                            val epcLen = IntArray(1)
+                            val tagCount = IntArray(1)
+                            r.Inventory_G2(
+                                0.toByte(), 0.toByte(), 0.toByte(), 0.toByte(),
+                                0.toByte(), 0.toByte(), 0.toByte(),
+                                1, epcData, epcLen, tagCount
+                            )
+                            delay(100)
+                        }
+                    }
                 } ?: run {
                     _state.value = RfidState.Error("Lector no conectado")
                 }
@@ -89,8 +109,9 @@ class RfidManager @Inject constructor() {
     fun stopInventory() {
         scope.launch {
             try {
+                inventoryJob?.cancel()
+                inventoryJob = null
                 reader?.let {
-                    it.stopInventory()
                     _state.value = RfidState.Connected
                 }
             } catch (e: Exception) {
@@ -103,7 +124,7 @@ class RfidManager @Inject constructor() {
         currentPower = power.coerceIn(0, 30)
         scope.launch {
             try {
-                reader?.setPower(currentPower)
+                reader?.SetRfPower(0.toByte(), currentPower.toByte())
             } catch (_: Exception) {}
         }
     }

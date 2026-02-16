@@ -29,10 +29,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import kotlinx.coroutines.launch
 import com.seretail.inventarios.printing.BluetoothPrinterManager
 import com.seretail.inventarios.printing.PrinterState
 import com.seretail.inventarios.ui.theme.DarkSurface
@@ -52,6 +54,7 @@ fun PrinterSelectionDialog(
     onDismiss: () -> Unit,
 ) {
     val printerState by printerManager.state.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
     val devices = remember { printerManager.getPairedDevices() }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -141,7 +144,9 @@ fun PrinterSelectionDialog(
                     }
                     if (printerState is PrinterState.Connected) {
                         TextButton(onClick = {
-                            printerManager.print("Test SER Inventarios\n\n\n".toByteArray())
+                            coroutineScope.launch {
+                                printerManager.print("Test SER Inventarios\n\n\n".toByteArray())
+                            }
                         }) {
                             Icon(Icons.Default.Print, contentDescription = null, tint = SERBlue, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(4.dp))

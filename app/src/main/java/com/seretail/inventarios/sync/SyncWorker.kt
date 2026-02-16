@@ -21,9 +21,9 @@ class SyncWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         return try {
-            // Upload pending data first
+            // Upload pending data first (pass context for image base64 encoding)
             inventarioRepository.uploadPendingRegistros()
-            activoFijoRepository.uploadPendingRegistros()
+            activoFijoRepository.uploadPendingRegistros(applicationContext)
 
             // Then download fresh data
             syncRepository.syncAll()

@@ -8,6 +8,7 @@ import com.seretail.inventarios.data.local.dao.InventarioDao
 import com.seretail.inventarios.data.local.dao.LoteDao
 import com.seretail.inventarios.data.local.dao.ProductoDao
 import com.seretail.inventarios.data.local.dao.RegistroDao
+import com.seretail.inventarios.data.local.dao.RfidTagDao
 import com.seretail.inventarios.data.local.dao.SucursalDao
 import com.seretail.inventarios.data.local.dao.SyncQueueDao
 import com.seretail.inventarios.data.local.dao.UserDao
@@ -23,6 +24,7 @@ import com.seretail.inventarios.data.local.entity.StatusEntity
 import com.seretail.inventarios.data.local.entity.SucursalEntity
 import com.seretail.inventarios.data.local.entity.SyncQueueEntity
 import com.seretail.inventarios.data.local.entity.TraspasoEntity
+import com.seretail.inventarios.data.local.entity.RfidTagEntity
 import com.seretail.inventarios.data.local.entity.UserEntity
 
 @Database(
@@ -40,8 +42,9 @@ import com.seretail.inventarios.data.local.entity.UserEntity
         TraspasoEntity::class,
         StatusEntity::class,
         SyncQueueEntity::class,
+        RfidTagEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -54,4 +57,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun activoFijoDao(): ActivoFijoDao
     abstract fun registroDao(): RegistroDao
     abstract fun syncQueueDao(): SyncQueueDao
+    abstract fun rfidTagDao(): RfidTagDao
 }

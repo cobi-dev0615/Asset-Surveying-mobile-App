@@ -1,14 +1,13 @@
 package com.seretail.inventarios.ui.activofijo
 
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,23 +15,32 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -42,436 +50,411 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
+import com.seretail.inventarios.export.CsvExporter
+import com.seretail.inventarios.export.ExcelExporter
+import com.seretail.inventarios.printing.BluetoothPrinterManager
+import com.seretail.inventarios.printing.PrintTemplates
+import com.seretail.inventarios.ui.components.PhotoSlotRow
+import com.seretail.inventarios.ui.components.SERTextField
 import com.seretail.inventarios.ui.components.SERTopBar
 import com.seretail.inventarios.ui.components.ScanResultCard
+import com.seretail.inventarios.ui.components.StatusChipRow
 import com.seretail.inventarios.ui.theme.DarkBackground
-import com.seretail.inventarios.ui.theme.DarkBorder
 import com.seretail.inventarios.ui.theme.DarkSurface
 import com.seretail.inventarios.ui.theme.DarkSurfaceVariant
 import com.seretail.inventarios.ui.theme.Error
 import com.seretail.inventarios.ui.theme.SERBlue
-import com.seretail.inventarios.ui.theme.StatusAdded
-import com.seretail.inventarios.ui.theme.StatusFound
-import com.seretail.inventarios.ui.theme.StatusNotFound
-import com.seretail.inventarios.ui.theme.StatusTransferred
+import com.seretail.inventarios.ui.theme.TextMuted
 import com.seretail.inventarios.ui.theme.TextPrimary
 import com.seretail.inventarios.ui.theme.TextSecondary
-import com.seretail.inventarios.ui.theme.Warning
+import java.io.File
 
-private data class StatusOption(val id: Int, val label: String, val color: androidx.compose.ui.graphics.Color)
-
-private val statusOptions = listOf(
-    StatusOption(1, "Encontrado", StatusFound),
-    StatusOption(2, "No Encontrado", StatusNotFound),
-    StatusOption(3, "Agregado", StatusAdded),
-    StatusOption(4, "Traspasado", StatusTransferred),
-)
-
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ActivoFijoCaptureScreen(
     sessionId: Long,
     onBackClick: () -> Unit,
-    onScanClick: () -> Unit,
+    onScanBarcode: () -> Unit,
+    printerManager: BluetoothPrinterManager? = null,
     viewModel: ActivoFijoCaptureViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    var showForm by remember { mutableStateOf(true) }
+    var showExportDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
-    LaunchedEffect(sessionId) { viewModel.loadSession(sessionId) }
-    LaunchedEffect(uiState.message) { uiState.message?.let { snackbarHostState.showSnackbar(it) } }
+    // Photo capture
+    var photoUri by remember { mutableStateOf<Uri?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success && photoUri != null) {
+            viewModel.onPhotoCaptured(photoUri!!)
+        }
+    }
+
+    LaunchedEffect(sessionId) {
+        viewModel.loadSession(sessionId)
+    }
+
+    LaunchedEffect(state.message) {
+        state.message?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessage()
+        }
+    }
+
+    // Launch camera when activePhotoSlot changes
+    LaunchedEffect(state.activePhotoSlot) {
+        if (state.activePhotoSlot > 0) {
+            val photoFile = File(context.cacheDir, "photo_${System.currentTimeMillis()}.jpg")
+            photoUri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                photoFile,
+            )
+            cameraLauncher.launch(photoUri!!)
+        }
+    }
 
     Scaffold(
         topBar = {
             SERTopBar(
-                title = uiState.session?.nombre ?: "Captura",
+                title = state.session?.nombre ?: "Captura",
                 onBackClick = onBackClick,
+                actions = {
+                    if (state.registros.isNotEmpty()) {
+                        IconButton(onClick = { showExportDialog = true }) {
+                            Icon(Icons.Default.FileDownload, contentDescription = "Exportar", tint = TextMuted)
+                        }
+                    }
+                    if (printerManager != null) {
+                        IconButton(onClick = {
+                            val lastRegistro = state.registros.lastOrNull()
+                            if (lastRegistro != null) {
+                                val data = PrintTemplates.buildAssetLabel(lastRegistro)
+                                scope.launch {
+                                    val ok = printerManager.print(data)
+                                    if (!ok) snackbarHostState.showSnackbar("Impresora no conectada")
+                                }
+                            } else {
+                                scope.launch { snackbarHostState.showSnackbar("No hay registros para imprimir") }
+                            }
+                        }) {
+                            Icon(Icons.Default.Print, contentDescription = "Imprimir etiqueta", tint = TextMuted)
+                        }
+                    }
+                    Text(
+                        text = "${state.capturedCount}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = SERBlue,
+                        modifier = Modifier.padding(end = 12.dp),
+                    )
+                },
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = DarkBackground,
     ) { padding ->
-        LazyColumn(
+        if (state.isLoading) {
+            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = SERBlue)
+            }
+            return@Scaffold
+        }
+
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(padding),
         ) {
-            // Edit mode banner
-            if (uiState.isEditMode) {
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Warning.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(Icons.Default.Edit, null, tint = Warning, modifier = Modifier.size(18.dp))
-                            Text("Modo edición", style = MaterialTheme.typography.labelLarge, color = Warning)
-                        }
-                        TextButton(onClick = viewModel::cancelEdit) {
-                            Text("Cancelar", color = TextSecondary)
+            // Capture form
+            if (showForm) {
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp),
+                ) {
+                    // Edit mode indicator
+                    if (state.isEditMode) {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = SERBlue.copy(alpha = 0.12f)),
+                                shape = RoundedCornerShape(8.dp),
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(Icons.Default.Edit, contentDescription = null, tint = SERBlue, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Editando registro", color = SERBlue, style = MaterialTheme.typography.bodySmall)
+                                    Spacer(Modifier.weight(1f))
+                                    IconButton(onClick = viewModel::cancelEdit, modifier = Modifier.size(24.dp)) {
+                                        Icon(Icons.Default.Clear, contentDescription = "Cancelar", tint = Error, modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                            }
                         }
                     }
-                }
-            }
 
-            // Area / Zone
-            item {
-                OutlinedTextField(
-                    value = uiState.area,
-                    onValueChange = viewModel::onAreaChanged,
-                    label = { Text("Área / Zona") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    colors = fieldColors(),
-                )
-            }
-
-            // Barcode input + scan button
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedTextField(
-                        value = uiState.barcode,
-                        onValueChange = viewModel::onBarcodeChanged,
-                        label = { Text("Código de Barras") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        colors = fieldColors(),
-                    )
-                    IconButton(onClick = onScanClick) {
-                        Icon(Icons.Default.CameraAlt, "Escanear", tint = SERBlue)
+                    // Barcode
+                    item {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            SERTextField(
+                                value = state.barcode,
+                                onValueChange = viewModel::onBarcodeChanged,
+                                label = "Código de barras",
+                                modifier = Modifier.weight(1f),
+                            )
+                            IconButton(onClick = onScanBarcode) {
+                                Icon(Icons.Default.CameraAlt, contentDescription = "Escanear", tint = SERBlue)
+                            }
+                        }
                     }
-                }
-            }
 
-            // Description
-            item {
-                OutlinedTextField(
-                    value = uiState.description,
-                    onValueChange = viewModel::onDescriptionChanged,
-                    label = { Text("Descripción") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    colors = fieldColors(),
-                )
-            }
-
-            // Category + Brand (with autocomplete dropdown)
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedTextField(
-                        value = uiState.category,
-                        onValueChange = viewModel::onCategoryChanged,
-                        label = { Text("Categoría") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        colors = fieldColors(),
-                    )
-                    Box(modifier = Modifier.weight(1f)) {
-                        OutlinedTextField(
-                            value = uiState.brand,
-                            onValueChange = viewModel::onBrandChanged,
-                            label = { Text("Marca") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            colors = fieldColors(),
+                    // Description
+                    item {
+                        SERTextField(
+                            value = state.description,
+                            onValueChange = viewModel::onDescriptionChanged,
+                            label = "Descripción",
                         )
-                        DropdownMenu(
-                            expanded = uiState.showBrandSuggestions,
-                            onDismissRequest = viewModel::dismissBrandSuggestions,
-                        ) {
-                            uiState.brandSuggestions.forEach { suggestion ->
-                                DropdownMenuItem(
-                                    text = { Text(suggestion) },
-                                    onClick = { viewModel.selectBrandSuggestion(suggestion) },
-                                )
-                            }
-                        }
                     }
-                }
-            }
 
-            // Model + Color
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedTextField(
-                        value = uiState.model,
-                        onValueChange = viewModel::onModelChanged,
-                        label = { Text("Modelo") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        colors = fieldColors(),
-                    )
-                    OutlinedTextField(
-                        value = uiState.color,
-                        onValueChange = viewModel::onColorChanged,
-                        label = { Text("Color") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        colors = fieldColors(),
-                    )
-                }
-            }
-
-            // Serie + Location
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedTextField(
-                        value = uiState.serie,
-                        onValueChange = viewModel::onSerieChanged,
-                        label = { Text("No. Serie") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        colors = fieldColors(),
-                    )
-                    OutlinedTextField(
-                        value = uiState.location,
-                        onValueChange = viewModel::onLocationChanged,
-                        label = { Text("Ubicación") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        colors = fieldColors(),
-                    )
-                }
-            }
-
-            // Status selector
-            item {
-                Text("Estado", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(top = 4.dp),
-                ) {
-                    statusOptions.forEach { option ->
-                        val selected = uiState.selectedStatus == option.id
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    if (selected) option.color.copy(alpha = 0.2f)
-                                    else DarkSurfaceVariant,
+                    // Category + Brand
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SERTextField(
+                                value = state.category,
+                                onValueChange = viewModel::onCategoryChanged,
+                                label = "Categoría",
+                                modifier = Modifier.weight(1f),
+                            )
+                            Box(modifier = Modifier.weight(1f)) {
+                                SERTextField(
+                                    value = state.brand,
+                                    onValueChange = viewModel::onBrandChanged,
+                                    label = "Marca",
                                 )
-                                .clickable { viewModel.onStatusChanged(option.id) }
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                        ) {
-                            Text(
-                                text = option.label,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (selected) option.color else TextSecondary,
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Photo slots (3 photos)
-            item {
-                Text("Fotografías", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    PhotoSlot(
-                        photoUri = uiState.photo1,
-                        slot = 1,
-                        onCapture = { viewModel.startPhotoCapture(1) },
-                        onRemove = { viewModel.removePhoto(1) },
-                        modifier = Modifier.weight(1f),
-                    )
-                    PhotoSlot(
-                        photoUri = uiState.photo2,
-                        slot = 2,
-                        onCapture = { viewModel.startPhotoCapture(2) },
-                        onRemove = { viewModel.removePhoto(2) },
-                        modifier = Modifier.weight(1f),
-                    )
-                    PhotoSlot(
-                        photoUri = uiState.photo3,
-                        slot = 3,
-                        onCapture = { viewModel.startPhotoCapture(3) },
-                        onRemove = { viewModel.removePhoto(3) },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-
-            // Save / Update button
-            item {
-                Button(
-                    onClick = viewModel::saveRegistro,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (uiState.isEditMode) Warning else SERBlue,
-                    ),
-                    shape = RoundedCornerShape(10.dp),
-                ) {
-                    Text(
-                        if (uiState.isEditMode) "Actualizar Activo" else "Guardar Activo",
-                        color = TextPrimary,
-                    )
-                }
-            }
-
-            // Counter + category filter
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "${uiState.capturedCount} activos capturados",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondary,
-                    )
-                    if (uiState.categories.isNotEmpty()) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            val allSelected = uiState.selectedCategoryFilter == null
-                            Text(
-                                text = "Todos",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (allSelected) SERBlue else TextSecondary,
-                                modifier = Modifier
-                                    .background(
-                                        if (allSelected) SERBlue.copy(alpha = 0.15f) else DarkSurface,
-                                        RoundedCornerShape(4.dp),
-                                    )
-                                    .clickable { viewModel.onCategoryFilterChanged(null) }
-                                    .padding(horizontal = 6.dp, vertical = 2.dp),
-                            )
-                            uiState.categories.take(3).forEach { cat ->
-                                val catSelected = uiState.selectedCategoryFilter == cat
-                                Text(
-                                    text = cat,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = if (catSelected) SERBlue else TextSecondary,
-                                    modifier = Modifier
-                                        .background(
-                                            if (catSelected) SERBlue.copy(alpha = 0.15f) else DarkSurface,
-                                            RoundedCornerShape(4.dp),
+                                DropdownMenu(
+                                    expanded = state.showBrandSuggestions,
+                                    onDismissRequest = viewModel::dismissBrandSuggestions,
+                                ) {
+                                    state.brandSuggestions.forEach { suggestion ->
+                                        DropdownMenuItem(
+                                            text = { Text(suggestion, color = TextPrimary) },
+                                            onClick = { viewModel.selectBrandSuggestion(suggestion) },
                                         )
-                                        .clickable { viewModel.onCategoryFilterChanged(cat) }
-                                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Model + Color
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SERTextField(
+                                value = state.model,
+                                onValueChange = viewModel::onModelChanged,
+                                label = "Modelo",
+                                modifier = Modifier.weight(1f),
+                            )
+                            SERTextField(
+                                value = state.color,
+                                onValueChange = viewModel::onColorChanged,
+                                label = "Color",
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+
+                    // Serie + Location
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SERTextField(
+                                value = state.serie,
+                                onValueChange = viewModel::onSerieChanged,
+                                label = "No. Serie",
+                                modifier = Modifier.weight(1f),
+                            )
+                            SERTextField(
+                                value = state.location,
+                                onValueChange = viewModel::onLocationChanged,
+                                label = "Ubicación",
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+
+                    // Area
+                    item {
+                        SERTextField(
+                            value = state.area,
+                            onValueChange = viewModel::onAreaChanged,
+                            label = "Área (se mantiene entre capturas)",
+                        )
+                    }
+
+                    // Status chips
+                    item {
+                        Text("Estado", style = MaterialTheme.typography.labelMedium, color = TextSecondary, modifier = Modifier.padding(top = 4.dp))
+                        Spacer(Modifier.height(4.dp))
+                        StatusChipRow(
+                            selectedId = state.selectedStatus,
+                            onStatusSelected = viewModel::onStatusChanged,
+                        )
+                    }
+
+                    // Photos
+                    item {
+                        Text("Fotos", style = MaterialTheme.typography.labelMedium, color = TextSecondary, modifier = Modifier.padding(top = 4.dp))
+                        Spacer(Modifier.height(4.dp))
+                        PhotoSlotRow(
+                            photo1 = state.photo1,
+                            photo2 = state.photo2,
+                            photo3 = state.photo3,
+                            onCapture = viewModel::startPhotoCapture,
+                            onRemove = viewModel::removePhoto,
+                        )
+                    }
+
+                    // Save button
+                    item {
+                        Spacer(Modifier.height(4.dp))
+                        Button(
+                            onClick = viewModel::saveRegistro,
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = SERBlue),
+                        ) {
+                            Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                if (state.isEditMode) "Actualizar Activo" else "Guardar Activo",
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                }
+            } else {
+                // Registros list
+                Column(modifier = Modifier.weight(1f)) {
+                    // Category filter
+                    if (state.categories.isNotEmpty()) {
+                        LazyRow(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            item {
+                                FilterChip(
+                                    selected = state.selectedCategoryFilter == null,
+                                    onClick = { viewModel.onCategoryFilterChanged(null) },
+                                    label = { Text("Todos") },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = SERBlue.copy(alpha = 0.2f),
+                                        selectedLabelColor = SERBlue,
+                                        labelColor = TextMuted,
+                                    ),
                                 )
                             }
+                            items(state.categories) { cat ->
+                                FilterChip(
+                                    selected = state.selectedCategoryFilter == cat,
+                                    onClick = { viewModel.onCategoryFilterChanged(cat) },
+                                    label = { Text(cat) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = SERBlue.copy(alpha = 0.2f),
+                                        selectedLabelColor = SERBlue,
+                                        labelColor = TextMuted,
+                                    ),
+                                )
+                            }
+                        }
+                    }
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp),
+                    ) {
+                        val filteredRegistros = viewModel.getFilteredRegistros()
+                        items(filteredRegistros, key = { it.id }) { registro ->
+                            ScanResultCard(
+                                barcode = registro.codigoBarras,
+                                description = registro.descripcion,
+                                statusId = registro.statusId,
+                                onEdit = { viewModel.enterEditMode(registro); showForm = true },
+                                onDelete = { viewModel.deleteRegistro(registro.id) },
+                            )
                         }
                     }
                 }
             }
 
-            // Registros list (filtered)
-            val filteredRegistros = viewModel.getFilteredRegistros()
-            items(filteredRegistros) { reg ->
-                val statusLabel = statusOptions.find { it.id == reg.statusId }
-                ScanResultCard(
-                    code = reg.codigoBarras,
-                    description = reg.descripcion ?: "Sin descripción",
-                    subtitle = listOfNotNull(reg.categoria, reg.marca, reg.ubicacion)
-                        .joinToString(" — "),
-                    statusText = statusLabel?.label,
-                    statusColor = statusLabel?.color ?: TextSecondary,
-                    onDelete = { viewModel.deleteRegistro(reg.id) },
-                    onClick = { viewModel.enterEditMode(reg) },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PhotoSlot(
-    photoUri: String?,
-    slot: Int,
-    onCapture: () -> Unit,
-    onRemove: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .height(100.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(DarkSurfaceVariant)
-            .border(1.dp, DarkBorder, RoundedCornerShape(8.dp))
-            .clickable(onClick = onCapture),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (photoUri != null) {
-            AsyncImage(
-                model = Uri.parse(photoUri),
-                contentDescription = "Foto $slot",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-            )
-            IconButton(
-                onClick = onRemove,
+            // Bottom toggle bar
+            Row(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .size(24.dp),
+                    .fillMaxWidth()
+                    .background(DarkSurface)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    Icons.Default.Close,
-                    contentDescription = "Eliminar",
-                    tint = Error,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-        } else {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Icon(
-                    Icons.Default.AddAPhoto,
-                    contentDescription = "Tomar foto $slot",
-                    tint = TextSecondary,
-                    modifier = Modifier.size(24.dp),
-                )
                 Text(
-                    "Foto $slot",
-                    style = MaterialTheme.typography.labelSmall,
+                    text = "Registros: ${state.registros.size}",
+                    style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary,
                 )
+                TextButton(onClick = { showForm = !showForm }) {
+                    Text(
+                        if (showForm) "Ver registros" else "Capturar",
+                        color = SERBlue,
+                    )
+                }
             }
         }
     }
-}
 
-@Composable
-private fun fieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = SERBlue,
-    unfocusedBorderColor = DarkBorder,
-    focusedLabelColor = SERBlue,
-    unfocusedLabelColor = TextSecondary,
-    cursorColor = SERBlue,
-    focusedTextColor = TextPrimary,
-    unfocusedTextColor = TextPrimary,
-)
+    // Export dialog
+    if (showExportDialog) {
+        val sessionName = state.session?.nombre ?: "activo_fijo"
+        AlertDialog(
+            onDismissRequest = { showExportDialog = false },
+            title = { Text("Exportar Registros", color = TextPrimary) },
+            text = { Text("${state.registros.size} registros. Selecciona el formato:", color = TextSecondary) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showExportDialog = false
+                    val uri = ExcelExporter.exportActivoFijo(context, sessionName, state.registros)
+                    CsvExporter.shareFile(context, uri, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                }) { Text("Excel (.xlsx)", color = SERBlue) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showExportDialog = false
+                    val uri = CsvExporter.exportActivoFijo(context, sessionName, state.registros)
+                    CsvExporter.shareFile(context, uri)
+                }) { Text("CSV", color = SERBlue) }
+            },
+        )
+    }
+}

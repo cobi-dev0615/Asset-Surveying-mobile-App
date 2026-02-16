@@ -3,113 +3,87 @@ package com.seretail.inventarios.ui.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seretail.inventarios.data.local.dao.RegistroDao
-import com.seretail.inventarios.data.repository.AuthRepository
 import com.seretail.inventarios.data.repository.SyncRepository
 import com.seretail.inventarios.util.NetworkMonitor
-import com.seretail.inventarios.util.PreferencesManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class DashboardUiState(
-    val userName: String = "",
-    val empresaNombre: String? = null,
-    val sucursalNombre: String? = null,
-    val totalSessions: Int = 0,
-    val totalRegistros: Int = 0,
-    val pendingSync: Int = 0,
-    val lastSync: String? = null,
+    val inventarioCount: Int = 0,
+    val activoFijoCount: Int = 0,
+    val foundCount: Int = 0,
+    val notFoundCount: Int = 0,
+    val addedCount: Int = 0,
+    val transferredCount: Int = 0,
+    val pendingSyncCount: Int = 0,
+    val isOnline: Boolean = true,
     val isSyncing: Boolean = false,
     val syncMessage: String? = null,
-    // Activo Fijo status breakdown
-    val afFound: Int = 0,
-    val afNotFound: Int = 0,
-    val afAdded: Int = 0,
-    val afTransferred: Int = 0,
-    // Inventario totals
-    val inventarioRegistros: Int = 0,
-    val activoFijoRegistros: Int = 0,
 )
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val authRepository: AuthRepository,
-    private val syncRepository: SyncRepository,
     private val registroDao: RegistroDao,
-    private val preferencesManager: PreferencesManager,
-    networkMonitor: NetworkMonitor,
+    private val syncRepository: SyncRepository,
+    private val networkMonitor: NetworkMonitor,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState
 
-    val isOnline = networkMonitor.isOnline.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
-        true,
-    )
-
     init {
-        loadDashboardData()
+        loadStats()
+        observeNetwork()
     }
 
-    private fun loadDashboardData() {
+    private fun loadStats() {
         viewModelScope.launch {
-            val user = authRepository.getCurrentUser()
-            val totalAF = registroDao.countAllActivoFijo()
-            val totalInv = registroDao.countAllInventario()
+            val invCount = registroDao.countAllInventario()
+            val afCount = registroDao.countAllActivoFijo()
+            val found = registroDao.countActivoFijoFound()
+            val notFound = registroDao.countActivoFijoNotFound()
+            val added = registroDao.countActivoFijoAdded()
+            val transferred = registroDao.countActivoFijoTransferred()
             val pending = registroDao.countAllUnsynced()
-            val afFound = registroDao.countActivoFijoFound()
-            val afNotFound = registroDao.countActivoFijoNotFound()
-            val afAdded = registroDao.countActivoFijoAdded()
-            val afTransferred = registroDao.countActivoFijoTransferred()
 
-            val empresaNombre = preferencesManager.empresaNombre.first()
-            val sucursalNombre = preferencesManager.sucursalNombre.first()
+            _uiState.value = _uiState.value.copy(
+                inventarioCount = invCount,
+                activoFijoCount = afCount,
+                foundCount = found,
+                notFoundCount = notFound,
+                addedCount = added,
+                transferredCount = transferred,
+                pendingSyncCount = pending,
+            )
+        }
+    }
 
-            preferencesManager.lastSync.collect { lastSync ->
-                _uiState.value = _uiState.value.copy(
-                    userName = user?.nombres ?: "Usuario",
-                    empresaNombre = empresaNombre,
-                    sucursalNombre = sucursalNombre,
-                    totalRegistros = totalAF + totalInv,
-                    pendingSync = pending,
-                    lastSync = lastSync,
-                    afFound = afFound,
-                    afNotFound = afNotFound,
-                    afAdded = afAdded,
-                    afTransferred = afTransferred,
-                    inventarioRegistros = totalInv,
-                    activoFijoRegistros = totalAF,
-                )
+    private fun observeNetwork() {
+        viewModelScope.launch {
+            networkMonitor.isOnline.collectLatest { online ->
+                _uiState.value = _uiState.value.copy(isOnline = online)
             }
         }
     }
 
-    fun sync() {
+    fun syncNow() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isSyncing = true, syncMessage = null)
-            val result = syncRepository.syncAll()
-            result.fold(
-                onSuccess = {
-                    _uiState.value = _uiState.value.copy(
-                        isSyncing = false,
-                        syncMessage = "Sincronización completada",
-                    )
-                    loadDashboardData()
-                },
-                onFailure = {
-                    _uiState.value = _uiState.value.copy(
-                        isSyncing = false,
-                        syncMessage = "Error: ${it.message}",
-                    )
-                },
-            )
+            _uiState.value = _uiState.value.copy(isSyncing = true)
+            try {
+                syncRepository.syncAll()
+                loadStats()
+                _uiState.value = _uiState.value.copy(isSyncing = false, syncMessage = "Sincronización completa")
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isSyncing = false, syncMessage = "Error: ${e.message}")
+            }
         }
     }
+
+    fun refresh() = loadStats()
+
+    fun clearMessage() { _uiState.value = _uiState.value.copy(syncMessage = null) }
 }

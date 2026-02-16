@@ -1,5 +1,6 @@
 package com.seretail.inventarios.data.remote
 
+import com.seretail.inventarios.data.remote.dto.ActivoFijoProductoDto
 import com.seretail.inventarios.data.remote.dto.ActivoFijoSessionDto
 import com.seretail.inventarios.data.remote.dto.ActivoFijoUploadRequest
 import com.seretail.inventarios.data.remote.dto.EmpresaDto
@@ -68,6 +69,13 @@ interface ApiService {
     // Activo Fijo Sessions
     @GET("activo-fijo")
     suspend fun getActivoFijoSessions(): Response<List<ActivoFijoSessionDto>>
+
+    @GET("activo-fijo-productos")
+    suspend fun getActivoFijoProductos(
+        @Query("inventario_id") inventarioId: Long? = null,
+        @Query("page") page: Int = 1,
+        @Query("per_page") perPage: Int = 500,
+    ): Response<PaginatedResponse<ActivoFijoProductoDto>>
 
     @POST("activo-fijo/upload")
     suspend fun uploadActivoFijo(@Body request: ActivoFijoUploadRequest): Response<UploadResponse>

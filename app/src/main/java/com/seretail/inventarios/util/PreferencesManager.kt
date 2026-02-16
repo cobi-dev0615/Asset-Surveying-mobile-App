@@ -36,6 +36,9 @@ class PreferencesManager @Inject constructor(
         private val KEY_EMPRESA_NOMBRE = stringPreferencesKey("empresa_nombre")
         private val KEY_SUCURSAL_ID = longPreferencesKey("sucursal_id")
         private val KEY_SUCURSAL_NOMBRE = stringPreferencesKey("sucursal_nombre")
+        private val KEY_PRINTER_MAC = stringPreferencesKey("printer_mac")
+        private val KEY_PRINTER_NAME = stringPreferencesKey("printer_name")
+        private val KEY_PRINTER_TYPE = stringPreferencesKey("printer_type")
     }
 
     val token: Flow<String?> = dataStore.data.map { it[KEY_TOKEN] }
@@ -49,6 +52,9 @@ class PreferencesManager @Inject constructor(
     val empresaNombre: Flow<String?> = dataStore.data.map { it[KEY_EMPRESA_NOMBRE] }
     val sucursalId: Flow<Long?> = dataStore.data.map { it[KEY_SUCURSAL_ID] }
     val sucursalNombre: Flow<String?> = dataStore.data.map { it[KEY_SUCURSAL_NOMBRE] }
+    val printerMac: Flow<String?> = dataStore.data.map { it[KEY_PRINTER_MAC] }
+    val printerName: Flow<String?> = dataStore.data.map { it[KEY_PRINTER_NAME] }
+    val printerType: Flow<String?> = dataStore.data.map { it[KEY_PRINTER_TYPE] }
 
     suspend fun saveToken(token: String) {
         dataStore.edit { it[KEY_TOKEN] = token }
@@ -89,6 +95,14 @@ class PreferencesManager @Inject constructor(
         dataStore.edit {
             it[KEY_SUCURSAL_ID] = id
             it[KEY_SUCURSAL_NOMBRE] = nombre
+        }
+    }
+
+    suspend fun savePrinter(mac: String, name: String, type: String) {
+        dataStore.edit {
+            it[KEY_PRINTER_MAC] = mac
+            it[KEY_PRINTER_NAME] = name
+            it[KEY_PRINTER_TYPE] = type
         }
     }
 

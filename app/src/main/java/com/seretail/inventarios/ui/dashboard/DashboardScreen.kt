@@ -1,8 +1,8 @@
 package com.seretail.inventarios.ui.dashboard
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,18 +10,24 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Assignment
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CloudSync
-import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.AddCircleOutline
+import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.SyncProblem
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -32,43 +38,66 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.seretail.inventarios.ui.components.SERTopBar
-import com.seretail.inventarios.ui.components.StatCard
 import com.seretail.inventarios.ui.theme.DarkBackground
 import com.seretail.inventarios.ui.theme.DarkSurface
+import com.seretail.inventarios.ui.theme.Info
 import com.seretail.inventarios.ui.theme.SERBlue
 import com.seretail.inventarios.ui.theme.StatusAdded
 import com.seretail.inventarios.ui.theme.StatusFound
 import com.seretail.inventarios.ui.theme.StatusNotFound
 import com.seretail.inventarios.ui.theme.StatusTransferred
+import com.seretail.inventarios.ui.theme.TextMuted
 import com.seretail.inventarios.ui.theme.TextPrimary
 import com.seretail.inventarios.ui.theme.TextSecondary
 import com.seretail.inventarios.ui.theme.Warning
 
 @Composable
 fun DashboardScreen(
-    onNavigateToInventario: () -> Unit,
-    onNavigateToActivoFijo: () -> Unit,
+    onNavigateToInventario: () -> Unit = {},
+    onNavigateToActivoFijo: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val isOnline by viewModel.isOnline.collectAsState()
+    val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(uiState.syncMessage) {
-        uiState.syncMessage?.let { snackbarHostState.showSnackbar(it) }
+    LaunchedEffect(state.syncMessage) {
+        state.syncMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessage()
+        }
     }
 
     Scaffold(
         topBar = {
             SERTopBar(
                 title = "SER Inventarios",
-                isOnline = isOnline,
-                isSyncing = uiState.isSyncing,
-                onSyncClick = viewModel::sync,
+                isOnline = state.isOnline,
+                actions = {
+                    if (state.isSyncing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp).padding(end = 8.dp),
+                            color = SERBlue,
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        IconButton(onClick = viewModel::syncNow) {
+                            Icon(
+                                Icons.Default.CloudSync,
+                                contentDescription = "Sincronizar",
+                                tint = if (state.pendingSyncCount > 0) Warning else TextMuted,
+                            )
+                        }
+                    }
+                },
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -82,163 +111,151 @@ fun DashboardScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Welcome + empresa/sucursal
-            Text(
-                text = "Hola, ${uiState.userName}",
-                style = MaterialTheme.typography.headlineSmall,
-                color = TextPrimary,
-            )
-            if (uiState.empresaNombre != null || uiState.sucursalNombre != null) {
-                Text(
-                    text = listOfNotNull(uiState.empresaNombre, uiState.sucursalNombre)
-                        .joinToString(" — "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = SERBlue,
-                )
-            }
-            if (uiState.lastSync != null) {
-                Text(
-                    text = "Última sincronización: ${uiState.lastSync}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Overview stats
+            // Main stats row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 StatCard(
                     title = "Inventario",
-                    value = "${uiState.inventarioRegistros}",
+                    count = state.inventarioCount,
                     icon = Icons.Default.Inventory2,
-                    iconColor = SERBlue,
+                    color = SERBlue,
                     modifier = Modifier.weight(1f),
+                    onClick = onNavigateToInventario,
                 )
                 StatCard(
                     title = "Activo Fijo",
-                    value = "${uiState.activoFijoRegistros}",
-                    icon = Icons.Default.Assignment,
-                    iconColor = SERBlue,
+                    count = state.activoFijoCount,
+                    icon = Icons.Default.QrCodeScanner,
+                    color = Info,
                     modifier = Modifier.weight(1f),
-                )
-                StatCard(
-                    title = "Pendientes",
-                    value = "${uiState.pendingSync}",
-                    icon = Icons.Default.CloudSync,
-                    iconColor = if (uiState.pendingSync > 0) Warning else StatusFound,
-                    modifier = Modifier.weight(1f),
+                    onClick = onNavigateToActivoFijo,
                 )
             }
 
-            // Activo Fijo status breakdown
-            if (uiState.activoFijoRegistros > 0) {
-                Text(
-                    text = "Desglose de Activos",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = TextPrimary,
-                )
-                Row(
+            // Pending sync
+            if (state.pendingSyncCount > 0) {
+                Card(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Warning.copy(alpha = 0.12f)),
+                    shape = RoundedCornerShape(12.dp),
                 ) {
-                    StatCard(
-                        title = "Encontrado",
-                        value = "${uiState.afFound}",
-                        icon = Icons.Default.CheckCircle,
-                        iconColor = StatusFound,
-                        modifier = Modifier.weight(1f),
-                    )
-                    StatCard(
-                        title = "No Encontr.",
-                        value = "${uiState.afNotFound}",
-                        icon = Icons.Default.ErrorOutline,
-                        iconColor = StatusNotFound,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    StatCard(
-                        title = "Agregado",
-                        value = "${uiState.afAdded}",
-                        icon = Icons.Default.AddCircleOutline,
-                        iconColor = StatusAdded,
-                        modifier = Modifier.weight(1f),
-                    )
-                    StatCard(
-                        title = "Traspasado",
-                        value = "${uiState.afTransferred}",
-                        icon = Icons.Default.SwapHoriz,
-                        iconColor = StatusTransferred,
-                        modifier = Modifier.weight(1f),
-                    )
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Default.SyncProblem, contentDescription = null, tint = Warning, modifier = Modifier.size(24.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Pendientes de sincronizar", color = TextPrimary, style = MaterialTheme.typography.bodyMedium)
+                            Text("${state.pendingSyncCount} registros", color = Warning, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
 
-            // Quick Actions
+            // Status breakdown section
             Text(
-                text = "Acciones Rápidas",
-                style = MaterialTheme.typography.titleMedium,
-                color = TextPrimary,
+                "Desglose Activo Fijo",
+                style = MaterialTheme.typography.titleSmall,
+                color = TextSecondary,
+                modifier = Modifier.padding(bottom = 4.dp),
             )
 
-            QuickActionCard(
-                title = "Inventario",
-                subtitle = "Captura de productos por código de barras",
-                icon = Icons.Default.Inventory2,
-                onClick = onNavigateToInventario,
-            )
-
-            QuickActionCard(
-                title = "Activo Fijo",
-                subtitle = "Auditoría de activos con fotos y ubicación",
-                icon = Icons.Default.QrCodeScanner,
-                onClick = onNavigateToActivoFijo,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                MiniStatCard("Encontrados", state.foundCount, StatusFound, Modifier.weight(1f))
+                MiniStatCard("No Encontrados", state.notFoundCount, StatusNotFound, Modifier.weight(1f))
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                MiniStatCard("Agregados", state.addedCount, StatusAdded, Modifier.weight(1f))
+                MiniStatCard("Traspasados", state.transferredCount, StatusTransferred, Modifier.weight(1f))
+            }
         }
     }
 }
 
 @Composable
-private fun QuickActionCard(
+private fun StatCard(
     title: String,
-    subtitle: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit,
+    count: Int,
+    icon: ImageVector,
+    color: Color,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(DarkSurface, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    Card(
+        modifier = modifier.then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        shape = RoundedCornerShape(12.dp),
     ) {
-        androidx.compose.material3.Icon(
-            imageVector = icon,
-            contentDescription = title,
-            tint = SERBlue,
-            modifier = Modifier.padding(top = 2.dp),
-        )
-        Column {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(28.dp))
+                if (onClick != null) {
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = "Ir",
+                        tint = TextMuted,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
             Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
+                text = "$count",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
                 color = TextPrimary,
             )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary,
+            Text(title, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+        }
+    }
+}
+
+@Composable
+private fun MiniStatCard(
+    title: String,
+    count: Int,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        shape = RoundedCornerShape(8.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(color, RoundedCornerShape(4.dp)),
             )
+            Spacer(Modifier.width(8.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "$count",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary,
+                )
+                Text(title, style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+            }
         }
     }
 }

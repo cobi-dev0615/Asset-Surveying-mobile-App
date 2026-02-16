@@ -1,5 +1,6 @@
 package com.seretail.inventarios.data.repository
 
+import android.content.Context
 import com.seretail.inventarios.data.local.dao.ActivoFijoDao
 import com.seretail.inventarios.data.local.dao.ProductoDao
 import com.seretail.inventarios.data.local.dao.RegistroDao
@@ -15,6 +16,7 @@ import com.seretail.inventarios.data.remote.dto.NoEncontradoDto
 import com.seretail.inventarios.data.remote.dto.NoEncontradoUploadRequest
 import com.seretail.inventarios.data.remote.dto.TraspasoDto
 import com.seretail.inventarios.data.remote.dto.TraspasoUploadRequest
+import com.seretail.inventarios.util.ImageHelper
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -57,7 +59,7 @@ class ActivoFijoRepository @Inject constructor(
     suspend fun countRegistros(sessionId: Long): Int =
         registroDao.countActivoFijoBySession(sessionId)
 
-    suspend fun uploadPendingRegistros(): Result<Int> {
+    suspend fun uploadPendingRegistros(context: Context): Result<Int> {
         val unsynced = registroDao.getUnsyncedActivoFijo()
         if (unsynced.isEmpty()) return Result.success(0)
 
@@ -79,9 +81,9 @@ class ActivoFijoRepository @Inject constructor(
                             serie = it.serie,
                             ubicacion = it.ubicacion,
                             statusId = it.statusId,
-                            imagen1 = it.imagen1,
-                            imagen2 = it.imagen2,
-                            imagen3 = it.imagen3,
+                            imagen1 = it.imagen1?.let { uri -> ImageHelper.readAsBase64(context, uri) },
+                            imagen2 = it.imagen2?.let { uri -> ImageHelper.readAsBase64(context, uri) },
+                            imagen3 = it.imagen3?.let { uri -> ImageHelper.readAsBase64(context, uri) },
                             latitud = it.latitud,
                             longitud = it.longitud,
                             usuarioId = it.usuarioId,

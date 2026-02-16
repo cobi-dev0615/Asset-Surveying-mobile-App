@@ -1,5 +1,6 @@
 package com.seretail.inventarios.ui.activofijo
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -8,7 +9,10 @@ import com.seretail.inventarios.data.local.entity.ActivoFijoRegistroEntity
 import com.seretail.inventarios.data.local.entity.ActivoFijoSessionEntity
 import com.seretail.inventarios.data.repository.ActivoFijoRepository
 import com.seretail.inventarios.data.repository.AuthRepository
+import com.seretail.inventarios.util.FeedbackManager
+import com.seretail.inventarios.util.LocationHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -26,24 +30,19 @@ data class ActivoFijoCaptureUiState(
     val serie: String = "",
     val location: String = "",
     val area: String = "",
-    val selectedStatus: Int = 1, // 1=Found
+    val selectedStatus: Int = 1,
     val isLoading: Boolean = true,
     val message: String? = null,
-    // Photo paths (local file URIs)
     val photo1: String? = null,
     val photo2: String? = null,
     val photo3: String? = null,
     val activePhotoSlot: Int = 0,
-    // Edit mode
     val editingRegistroId: Long? = null,
     val isEditMode: Boolean = false,
-    // Brand autocomplete
     val brandSuggestions: List<String> = emptyList(),
     val showBrandSuggestions: Boolean = false,
-    // Category filter
     val categories: List<String> = emptyList(),
     val selectedCategoryFilter: String? = null,
-    // Stats
     val capturedCount: Int = 0,
 )
 
@@ -52,6 +51,8 @@ class ActivoFijoCaptureViewModel @Inject constructor(
     private val activoFijoRepository: ActivoFijoRepository,
     private val authRepository: AuthRepository,
     private val registroDao: RegistroDao,
+    private val feedbackManager: FeedbackManager,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ActivoFijoCaptureUiState())
@@ -91,9 +92,7 @@ class ActivoFijoCaptureViewModel @Inject constructor(
     fun onBrandChanged(v: String) {
         val suggestions = if (v.length >= 2) {
             allBrands.filter { it.contains(v, ignoreCase = true) }.take(5)
-        } else {
-            emptyList()
-        }
+        } else emptyList()
         _uiState.value = _uiState.value.copy(
             brand = v,
             brandSuggestions = suggestions,
@@ -102,10 +101,7 @@ class ActivoFijoCaptureViewModel @Inject constructor(
     }
 
     fun selectBrandSuggestion(brand: String) {
-        _uiState.value = _uiState.value.copy(
-            brand = brand,
-            showBrandSuggestions = false,
-        )
+        _uiState.value = _uiState.value.copy(brand = brand, showBrandSuggestions = false)
     }
 
     fun dismissBrandSuggestions() {
@@ -113,6 +109,7 @@ class ActivoFijoCaptureViewModel @Inject constructor(
     }
 
     fun onBarcodeScanned(barcode: String) {
+        feedbackManager.playDecode()
         _uiState.value = _uiState.value.copy(barcode = barcode)
         viewModelScope.launch {
             val product = activoFijoRepository.findProduct(barcode)
@@ -126,12 +123,8 @@ class ActivoFijoCaptureViewModel @Inject constructor(
                     serie = product.serie ?: "",
                 )
             }
-
-            // Check if asset was already captured (enter edit mode)
             val existing = _uiState.value.registros.find { it.codigoBarras == barcode }
-            if (existing != null) {
-                enterEditMode(existing)
-            }
+            if (existing != null) enterEditMode(existing)
         }
     }
 
@@ -154,11 +147,8 @@ class ActivoFijoCaptureViewModel @Inject constructor(
         )
     }
 
-    fun cancelEdit() {
-        clearForm()
-    }
+    fun cancelEdit() = clearForm()
 
-    // Photo management
     fun startPhotoCapture(slot: Int) {
         _uiState.value = _uiState.value.copy(activePhotoSlot = slot)
     }
@@ -184,7 +174,6 @@ class ActivoFijoCaptureViewModel @Inject constructor(
         }
     }
 
-    // Category filter for registro list
     fun onCategoryFilterChanged(category: String?) {
         _uiState.value = _uiState.value.copy(selectedCategoryFilter = category)
     }
@@ -192,23 +181,22 @@ class ActivoFijoCaptureViewModel @Inject constructor(
     fun getFilteredRegistros(): List<ActivoFijoRegistroEntity> {
         val state = _uiState.value
         val filter = state.selectedCategoryFilter
-        return if (filter != null) {
-            state.registros.filter { it.categoria == filter }
-        } else {
-            state.registros
-        }
+        return if (filter != null) state.registros.filter { it.categoria == filter }
+        else state.registros
     }
 
     fun saveRegistro() {
         val state = _uiState.value
         if (state.barcode.isBlank()) {
             _uiState.value = state.copy(message = "Ingresa un código de barras")
+            feedbackManager.playError()
             return
         }
         val session = state.session ?: return
 
         viewModelScope.launch {
             val user = authRepository.getCurrentUser()
+            val coords = LocationHelper.getCurrentLocation(appContext)
 
             if (state.isEditMode && state.editingRegistroId != null) {
                 val updated = ActivoFijoRegistroEntity(
@@ -226,11 +214,14 @@ class ActivoFijoCaptureViewModel @Inject constructor(
                     imagen1 = state.photo1,
                     imagen2 = state.photo2,
                     imagen3 = state.photo3,
+                    latitud = coords?.first,
+                    longitud = coords?.second,
                     fechaCaptura = activoFijoRepository.now(),
                     usuarioId = user?.id,
                     sincronizado = false,
                 )
                 registroDao.updateActivoFijo(updated)
+                feedbackManager.playSuccess()
                 clearForm()
                 _uiState.value = _uiState.value.copy(message = "Activo actualizado")
             } else {
@@ -248,10 +239,13 @@ class ActivoFijoCaptureViewModel @Inject constructor(
                     imagen1 = state.photo1,
                     imagen2 = state.photo2,
                     imagen3 = state.photo3,
+                    latitud = coords?.first,
+                    longitud = coords?.second,
                     fechaCaptura = activoFijoRepository.now(),
                     usuarioId = user?.id,
                 )
                 activoFijoRepository.saveRegistro(registro)
+                feedbackManager.playSuccess()
                 clearForm()
                 _uiState.value = _uiState.value.copy(message = "Activo guardado")
             }
@@ -281,8 +275,8 @@ class ActivoFijoCaptureViewModel @Inject constructor(
     }
 
     fun deleteRegistro(id: Long) {
-        viewModelScope.launch {
-            activoFijoRepository.deleteRegistro(id)
-        }
+        viewModelScope.launch { activoFijoRepository.deleteRegistro(id) }
     }
+
+    fun clearMessage() { _uiState.value = _uiState.value.copy(message = null) }
 }

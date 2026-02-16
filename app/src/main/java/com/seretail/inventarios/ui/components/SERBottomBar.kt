@@ -3,10 +3,12 @@ package com.seretail.inventarios.ui.components
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -22,40 +24,41 @@ data class BottomNavItem(
     val route: String,
     val label: String,
     val icon: ImageVector,
+    val badgeCount: Int = 0,
 )
 
 val bottomNavItems = listOf(
     BottomNavItem("dashboard", "Inicio", Icons.Default.Home),
-    BottomNavItem("inventario/list", "Inventario", Icons.Default.Inventory2),
-    BottomNavItem("activofijo/list", "Activo Fijo", Icons.Default.QrCodeScanner),
+    BottomNavItem("inventario_list", "Inventario", Icons.Default.Inventory2),
+    BottomNavItem("activofijo_list", "Activo Fijo", Icons.Default.QrCodeScanner),
+    BottomNavItem("rfid_capture", "RFID", Icons.Default.Nfc),
     BottomNavItem("settings", "Ajustes", Icons.Default.Settings),
 )
 
 @Composable
 fun SERBottomBar(
     currentRoute: String?,
-    onNavigate: (String) -> Unit,
+    pendingSyncCount: Int = 0,
+    onItemClick: (String) -> Unit,
 ) {
-    NavigationBar(
-        containerColor = DarkSurface,
-    ) {
+    NavigationBar(containerColor = DarkSurface) {
         bottomNavItems.forEach { item ->
             val selected = currentRoute == item.route
             NavigationBarItem(
                 selected = selected,
-                onClick = { onNavigate(item.route) },
+                onClick = { onItemClick(item.route) },
                 icon = {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = item.label,
-                    )
+                    if (item.route == "dashboard" && pendingSyncCount > 0) {
+                        BadgedBox(badge = {
+                            Badge { Text("$pendingSyncCount") }
+                        }) {
+                            Icon(item.icon, contentDescription = item.label)
+                        }
+                    } else {
+                        Icon(item.icon, contentDescription = item.label)
+                    }
                 },
-                label = {
-                    Text(
-                        text = item.label,
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                },
+                label = { Text(item.label) },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = SERBlue,
                     selectedTextColor = SERBlue,

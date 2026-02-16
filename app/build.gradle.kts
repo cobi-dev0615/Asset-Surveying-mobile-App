@@ -102,6 +102,9 @@ dependencies {
     implementation(libs.hilt.work)
     ksp(libs.hilt.work.compiler)
 
+    // Location
+    implementation(libs.play.services.location)
+
     // Coil
     implementation(libs.coil.compose)
 
@@ -111,6 +114,9 @@ dependencies {
     // Coroutines
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)
+
+    // Apache POI (Excel export)
+    implementation(libs.apache.poi)
 
     // Desugaring (java.time on API < 26)
     coreLibraryDesugaring(libs.desugar.jdk)

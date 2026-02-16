@@ -24,9 +24,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.seretail.inventarios.data.local.entity.ActivoFijoRegistroEntity
 import com.seretail.inventarios.ui.activofijo.ActivoFijoCaptureScreen
 import com.seretail.inventarios.ui.activofijo.ActivoFijoListScreen
 import com.seretail.inventarios.ui.components.SERBottomBar
+import com.seretail.inventarios.ui.crosscount.CrossCountScreen
 import com.seretail.inventarios.ui.dashboard.DashboardScreen
 import com.seretail.inventarios.ui.inventario.InventarioCaptureScreen
 import com.seretail.inventarios.ui.inventario.InventarioListScreen
@@ -48,10 +50,12 @@ object Routes {
     const val RFID_CAPTURE = "rfid_capture"
     const val SETTINGS = "settings"
     const val SCANNER = "scanner/{returnRoute}"
+    const val CROSSCOUNT = "crosscount/{session1Id}/{session2Id}"
 
     fun inventarioCapture(sessionId: Long) = "inventario_capture/$sessionId"
     fun activoFijoCapture(sessionId: Long) = "activofijo_capture/$sessionId"
     fun scanner(returnRoute: String) = "scanner/$returnRoute"
+    fun crosscount(s1: Long, s2: Long) = "crosscount/$s1/$s2"
 }
 
 private val bottomBarRoutes = setOf(
@@ -192,6 +196,9 @@ fun AppNavigation() {
                     onSessionClick = { sessionId ->
                         navController.navigate(Routes.activoFijoCapture(sessionId))
                     },
+                    onCompareClick = { s1, s2 ->
+                        navController.navigate(Routes.crosscount(s1, s2))
+                    },
                 )
             }
 
@@ -239,6 +246,38 @@ fun AppNavigation() {
                         }
                     },
                     printerManager = printerManager,
+                )
+            }
+
+            // Cross-Count Comparison
+            composable(
+                route = Routes.CROSSCOUNT,
+                arguments = listOf(
+                    navArgument("session1Id") { type = NavType.LongType },
+                    navArgument("session2Id") { type = NavType.LongType },
+                ),
+            ) { backStackEntry ->
+                val session1Id = backStackEntry.arguments?.getLong("session1Id") ?: return@composable
+                val session2Id = backStackEntry.arguments?.getLong("session2Id") ?: return@composable
+
+                var session1Registros by remember { mutableStateOf<List<ActivoFijoRegistroEntity>>(emptyList()) }
+                var session2Registros by remember { mutableStateOf<List<ActivoFijoRegistroEntity>>(emptyList()) }
+                var session1Name by remember { mutableStateOf("Sesión 1") }
+                var session2Name by remember { mutableStateOf("Sesión 2") }
+
+                LaunchedEffect(session1Id, session2Id) {
+                    session1Registros = navViewModel.registroDao.getActivoFijoBySession(session1Id)
+                    session2Registros = navViewModel.registroDao.getActivoFijoBySession(session2Id)
+                    session1Name = navViewModel.activoFijoDao.getById(session1Id)?.nombre ?: "Sesión 1"
+                    session2Name = navViewModel.activoFijoDao.getById(session2Id)?.nombre ?: "Sesión 2"
+                }
+
+                CrossCountScreen(
+                    session1Registros = session1Registros,
+                    session2Registros = session2Registros,
+                    session1Name = session1Name,
+                    session2Name = session2Name,
+                    onBackClick = { navController.popBackStack() },
                 )
             }
 

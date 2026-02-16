@@ -22,6 +22,8 @@ private val SERDarkColorScheme = darkColorScheme(
     outline = DarkBorder,
     error = Error,
     onError = TextPrimary,
+    inverseSurface = DarkSurfaceVariant,
+    inverseOnSurface = TextPrimary,
 )
 
 @Composable

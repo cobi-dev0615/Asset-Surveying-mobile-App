@@ -8,6 +8,7 @@ import com.seretail.inventarios.data.local.entity.InventarioEntity
 import com.seretail.inventarios.data.repository.AuthRepository
 import com.seretail.inventarios.data.repository.InventarioRepository
 import com.seretail.inventarios.util.FeedbackManager
+import com.seretail.inventarios.util.HardwareScannerBus
 import com.seretail.inventarios.util.LocationHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -40,6 +41,12 @@ class InventarioCaptureViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(InventarioCaptureUiState())
     val uiState: StateFlow<InventarioCaptureUiState> = _uiState
+
+    init {
+        viewModelScope.launch {
+            HardwareScannerBus.barcodes.collect { barcode -> onBarcodeScanned(barcode) }
+        }
+    }
 
     fun loadSession(sessionId: Long) {
         viewModelScope.launch {

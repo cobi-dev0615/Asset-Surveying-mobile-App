@@ -18,4 +18,5 @@ data class RfidTagEntity(
     val matched: Boolean = false,
     @ColumnInfo(name = "matched_registro_id")
     val matchedRegistroId: Long? = null,
+    val sincronizado: Boolean = false,
 )

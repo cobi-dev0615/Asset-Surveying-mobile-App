@@ -7,9 +7,11 @@ import androidx.lifecycle.viewModelScope
 import com.seretail.inventarios.data.local.dao.RegistroDao
 import com.seretail.inventarios.data.local.entity.ActivoFijoRegistroEntity
 import com.seretail.inventarios.data.local.entity.ActivoFijoSessionEntity
+import com.seretail.inventarios.data.local.entity.TraspasoEntity
 import com.seretail.inventarios.data.repository.ActivoFijoRepository
 import com.seretail.inventarios.data.repository.AuthRepository
 import com.seretail.inventarios.util.FeedbackManager
+import com.seretail.inventarios.util.HardwareScannerBus
 import com.seretail.inventarios.util.LocationHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -44,6 +46,9 @@ data class ActivoFijoCaptureUiState(
     val categories: List<String> = emptyList(),
     val selectedCategoryFilter: String? = null,
     val capturedCount: Int = 0,
+    val showTransferDialog: Boolean = false,
+    val transferOriginSucursalId: Long? = null,
+    val transferOriginSucursalName: String? = null,
 )
 
 @HiltViewModel
@@ -59,6 +64,12 @@ class ActivoFijoCaptureViewModel @Inject constructor(
     val uiState: StateFlow<ActivoFijoCaptureUiState> = _uiState
 
     private var allBrands: List<String> = emptyList()
+
+    init {
+        viewModelScope.launch {
+            HardwareScannerBus.barcodes.collect { barcode -> onBarcodeScanned(barcode) }
+        }
+    }
 
     fun loadSession(sessionId: Long) {
         viewModelScope.launch {
@@ -112,7 +123,9 @@ class ActivoFijoCaptureViewModel @Inject constructor(
         feedbackManager.playDecode()
         _uiState.value = _uiState.value.copy(barcode = barcode)
         viewModelScope.launch {
-            val product = activoFijoRepository.findProduct(barcode)
+            val session = _uiState.value.session ?: return@launch
+
+            val (product, isTransfer) = activoFijoRepository.findProductWithTransferCheck(barcode, session.sucursalId)
             if (product != null) {
                 _uiState.value = _uiState.value.copy(
                     description = product.descripcion,
@@ -122,6 +135,15 @@ class ActivoFijoCaptureViewModel @Inject constructor(
                     color = product.color ?: "",
                     serie = product.serie ?: "",
                 )
+
+                if (isTransfer) {
+                    _uiState.value = _uiState.value.copy(
+                        showTransferDialog = true,
+                        transferOriginSucursalId = product.sucursalId,
+                        transferOriginSucursalName = null,
+                    )
+                    return@launch
+                }
             }
             val existing = _uiState.value.registros.find { it.codigoBarras == barcode }
             if (existing != null) enterEditMode(existing)
@@ -279,4 +301,62 @@ class ActivoFijoCaptureViewModel @Inject constructor(
     }
 
     fun clearMessage() { _uiState.value = _uiState.value.copy(message = null) }
+
+    fun confirmTransfer() {
+        val state = _uiState.value
+        val session = state.session ?: return
+
+        viewModelScope.launch {
+            val user = authRepository.getCurrentUser()
+            val coords = LocationHelper.getCurrentLocation(appContext)
+
+            // Save registro with status = 4 (Transferred)
+            val registro = ActivoFijoRegistroEntity(
+                sessionId = session.id,
+                codigoBarras = state.barcode,
+                descripcion = state.description.ifBlank { null },
+                categoria = state.category.ifBlank { null },
+                marca = state.brand.ifBlank { null },
+                modelo = state.model.ifBlank { null },
+                color = state.color.ifBlank { null },
+                serie = state.serie.ifBlank { null },
+                ubicacion = state.location.ifBlank { null },
+                statusId = 4, // Transferred
+                imagen1 = state.photo1,
+                imagen2 = state.photo2,
+                imagen3 = state.photo3,
+                latitud = coords?.first,
+                longitud = coords?.second,
+                fechaCaptura = activoFijoRepository.now(),
+                usuarioId = user?.id,
+            )
+            val registroId = activoFijoRepository.saveRegistro(registro)
+
+            // Create traspaso record
+            val traspaso = TraspasoEntity(
+                registroId = registroId,
+                sucursalOrigenId = state.transferOriginSucursalId ?: 0L,
+                sucursalDestinoId = session.sucursalId,
+                fechaCaptura = activoFijoRepository.now(),
+            )
+            activoFijoRepository.saveTraspaso(traspaso)
+
+            feedbackManager.playSuccess()
+            _uiState.value = _uiState.value.copy(
+                showTransferDialog = false,
+                transferOriginSucursalId = null,
+                transferOriginSucursalName = null,
+                message = "Traspaso registrado",
+            )
+            clearForm()
+        }
+    }
+
+    fun dismissTransfer() {
+        _uiState.value = _uiState.value.copy(
+            showTransferDialog = false,
+            transferOriginSucursalId = null,
+            transferOriginSucursalName = null,
+        )
+    }
 }

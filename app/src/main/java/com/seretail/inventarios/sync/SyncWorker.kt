@@ -6,6 +6,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.seretail.inventarios.data.repository.ActivoFijoRepository
 import com.seretail.inventarios.data.repository.InventarioRepository
+import com.seretail.inventarios.data.repository.RfidRepository
 import com.seretail.inventarios.data.repository.SyncRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -17,6 +18,7 @@ class SyncWorker @AssistedInject constructor(
     private val syncRepository: SyncRepository,
     private val inventarioRepository: InventarioRepository,
     private val activoFijoRepository: ActivoFijoRepository,
+    private val rfidRepository: RfidRepository,
 ) : CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result {
@@ -24,6 +26,8 @@ class SyncWorker @AssistedInject constructor(
             // Upload pending data first (pass context for image base64 encoding)
             inventarioRepository.uploadPendingRegistros()
             activoFijoRepository.uploadPendingRegistros(applicationContext)
+            activoFijoRepository.uploadPendingTraspasos()
+            rfidRepository.uploadPendingTags()
 
             // Then download fresh data
             syncRepository.syncAll()

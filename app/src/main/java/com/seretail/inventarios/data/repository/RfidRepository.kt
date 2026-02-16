@@ -3,6 +3,9 @@ package com.seretail.inventarios.data.repository
 import com.seretail.inventarios.data.local.dao.ProductoDao
 import com.seretail.inventarios.data.local.dao.RfidTagDao
 import com.seretail.inventarios.data.local.entity.RfidTagEntity
+import com.seretail.inventarios.data.remote.ApiService
+import com.seretail.inventarios.data.remote.dto.RfidTagDto
+import com.seretail.inventarios.data.remote.dto.RfidTagUploadRequest
 import com.seretail.inventarios.rfid.RfidManager
 import com.seretail.inventarios.rfid.RfidState
 import kotlinx.coroutines.flow.Flow
@@ -17,6 +20,7 @@ class RfidRepository @Inject constructor(
     private val rfidManager: RfidManager,
     private val rfidTagDao: RfidTagDao,
     private val productoDao: ProductoDao,
+    private val apiService: ApiService,
 ) {
     val rfidState: StateFlow<RfidState> = rfidManager.state
     val incomingTags = rfidManager.tags
@@ -69,6 +73,42 @@ class RfidRepository @Inject constructor(
     suspend fun countMatched(sessionId: Long): Int = rfidTagDao.countMatchedBySession(sessionId)
 
     suspend fun clearSession(sessionId: Long) = rfidTagDao.deleteBySession(sessionId)
+
+    suspend fun uploadPendingTags(): Result<Int> {
+        val unsynced = rfidTagDao.getUnsynced()
+        if (unsynced.isEmpty()) return Result.success(0)
+
+        val grouped = unsynced.groupBy { it.sessionId }
+        var totalUploaded = 0
+
+        for ((sessionId, tags) in grouped) {
+            try {
+                val request = RfidTagUploadRequest(
+                    sessionId = sessionId,
+                    tags = tags.map {
+                        RfidTagDto(
+                            epc = it.epc,
+                            rssi = it.rssi,
+                            readCount = it.readCount,
+                            matched = it.matched,
+                            matchedRegistroId = it.matchedRegistroId,
+                            timestamp = it.timestamp,
+                        )
+                    },
+                )
+                val response = apiService.uploadRfidTags(request)
+                if (response.isSuccessful) {
+                    for (tag in tags) {
+                        rfidTagDao.update(tag.copy(sincronizado = true))
+                    }
+                    totalUploaded += tags.size
+                }
+            } catch (_: Exception) {
+                // Will retry on next sync
+            }
+        }
+        return Result.success(totalUploaded)
+    }
 
     private fun now(): String = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
 }

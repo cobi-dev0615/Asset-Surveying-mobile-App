@@ -17,6 +17,9 @@ interface RegistroDao {
     @Query("SELECT * FROM activo_fijo_registros WHERE session_id = :sessionId ORDER BY id DESC")
     fun observeActivoFijoBySession(sessionId: Long): Flow<List<ActivoFijoRegistroEntity>>
 
+    @Query("SELECT * FROM activo_fijo_registros WHERE session_id = :sessionId ORDER BY id DESC")
+    suspend fun getActivoFijoBySession(sessionId: Long): List<ActivoFijoRegistroEntity>
+
     @Query("SELECT COUNT(*) FROM activo_fijo_registros WHERE session_id = :sessionId")
     suspend fun countActivoFijoBySession(sessionId: Long): Int
 
@@ -73,6 +76,9 @@ interface RegistroDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTraspaso(traspaso: TraspasoEntity): Long
+
+    @Update
+    suspend fun updateTraspaso(traspaso: TraspasoEntity)
 
     // Counts for dashboard
     @Query("SELECT COUNT(*) FROM activo_fijo_registros")

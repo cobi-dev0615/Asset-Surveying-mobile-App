@@ -457,4 +457,29 @@ fun ActivoFijoCaptureScreen(
             },
         )
     }
+
+    // Transfer confirmation dialog
+    if (state.showTransferDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissTransfer() },
+            title = { Text("Traspaso Detectado", color = TextPrimary) },
+            text = {
+                Text(
+                    "Este activo pertenece a otra sucursal. Se registrará como traspasado a la sucursal actual.",
+                    color = TextSecondary,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.confirmTransfer() }) {
+                    Text("Confirmar Traspaso", color = SERBlue)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissTransfer() }) {
+                    Text("Cancelar", color = TextSecondary)
+                }
+            },
+            containerColor = DarkSurface,
+        )
+    }
 }

@@ -22,6 +22,9 @@ interface ActivoFijoDao {
     suspend fun count(): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(session: ActivoFijoSessionEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(sessions: List<ActivoFijoSessionEntity>)
 
     @Query("DELETE FROM activo_fijo_sessions")

@@ -69,19 +69,42 @@ data class NoEncontradoDto(
 
 @JsonClass(generateAdapter = true)
 data class TraspasoUploadRequest(
-    @Json(name = "inventario_id") val inventarioId: Long,
     val traspasos: List<TraspasoDto>,
 )
 
 @JsonClass(generateAdapter = true)
 data class TraspasoDto(
-    @Json(name = "registro_id") val registroId: Long,
+    @Json(name = "activo") val registroId: Long,
     @Json(name = "sucursal_origen_id") val sucursalOrigenId: Long,
     @Json(name = "sucursal_destino_id") val sucursalDestinoId: Long,
+)
+
+@JsonClass(generateAdapter = true)
+data class CreateSessionRequest(
+    val nombre: String,
+    @Json(name = "empresa_id") val empresaId: Long,
+    @Json(name = "sucursal_id") val sucursalId: Long,
+)
+
+@JsonClass(generateAdapter = true)
+data class RfidTagUploadRequest(
+    @Json(name = "session_id") val sessionId: Long,
+    val tags: List<RfidTagDto>,
+)
+
+@JsonClass(generateAdapter = true)
+data class RfidTagDto(
+    val epc: String,
+    val rssi: Int,
+    @Json(name = "read_count") val readCount: Int,
+    val matched: Boolean,
+    @Json(name = "matched_registro_id") val matchedRegistroId: Long? = null,
+    val timestamp: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
 data class UploadResponse(
     val message: String,
     val count: Int? = null,
+    val id: Long? = null,
 )

@@ -1,6 +1,7 @@
 package com.seretail.inventarios.data.remote
 
 import com.seretail.inventarios.data.remote.dto.ActivoFijoProductoDto
+import com.seretail.inventarios.data.remote.dto.CreateSessionRequest
 import com.seretail.inventarios.data.remote.dto.ActivoFijoSessionDto
 import com.seretail.inventarios.data.remote.dto.ActivoFijoUploadRequest
 import com.seretail.inventarios.data.remote.dto.EmpresaDto
@@ -11,6 +12,7 @@ import com.seretail.inventarios.data.remote.dto.LoginResponse
 import com.seretail.inventarios.data.remote.dto.LoteDto
 import com.seretail.inventarios.data.remote.dto.NoEncontradoUploadRequest
 import com.seretail.inventarios.data.remote.dto.PaginatedResponse
+import com.seretail.inventarios.data.remote.dto.RfidTagUploadRequest
 import com.seretail.inventarios.data.remote.dto.ProductoDto
 import com.seretail.inventarios.data.remote.dto.StatusDto
 import com.seretail.inventarios.data.remote.dto.SucursalDto
@@ -63,12 +65,18 @@ interface ApiService {
     @GET("inventarios")
     suspend fun getInventarios(): Response<List<InventarioSessionDto>>
 
+    @POST("inventarios/create")
+    suspend fun createInventario(@Body request: CreateSessionRequest): Response<InventarioSessionDto>
+
     @POST("inventarios/upload")
     suspend fun uploadInventario(@Body request: InventarioUploadRequest): Response<UploadResponse>
 
     // Activo Fijo Sessions
     @GET("activo-fijo")
     suspend fun getActivoFijoSessions(): Response<List<ActivoFijoSessionDto>>
+
+    @POST("activo-fijo/create")
+    suspend fun createActivoFijoSession(@Body request: CreateSessionRequest): Response<ActivoFijoSessionDto>
 
     @GET("activo-fijo-productos")
     suspend fun getActivoFijoProductos(
@@ -85,6 +93,9 @@ interface ApiService {
 
     @POST("activo-fijo/traspasos")
     suspend fun uploadTraspasos(@Body request: TraspasoUploadRequest): Response<UploadResponse>
+
+    @POST("activo-fijo/rfid-tags")
+    suspend fun uploadRfidTags(@Body request: RfidTagUploadRequest): Response<UploadResponse>
 
     // Image Upload
     @Multipart

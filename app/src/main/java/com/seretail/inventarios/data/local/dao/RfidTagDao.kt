@@ -22,6 +22,9 @@ interface RfidTagDao {
     @Query("SELECT COUNT(*) FROM rfid_tags WHERE session_id = :sessionId AND matched = 1")
     suspend fun countMatchedBySession(sessionId: Long): Int
 
+    @Query("SELECT * FROM rfid_tags WHERE sincronizado = 0")
+    suspend fun getUnsynced(): List<RfidTagEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(tag: RfidTagEntity): Long
 

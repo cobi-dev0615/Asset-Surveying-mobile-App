@@ -22,6 +22,9 @@ interface InventarioDao {
     suspend fun count(): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(inventario: InventarioEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(inventarios: List<InventarioEntity>)
 
     @Query("DELETE FROM inventarios")

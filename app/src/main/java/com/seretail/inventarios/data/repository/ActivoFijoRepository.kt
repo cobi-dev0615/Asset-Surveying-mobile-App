@@ -12,6 +12,7 @@ import com.seretail.inventarios.data.local.entity.TraspasoEntity
 import com.seretail.inventarios.data.remote.ApiService
 import com.seretail.inventarios.data.remote.dto.ActivoFijoRegistroDto
 import com.seretail.inventarios.data.remote.dto.ActivoFijoUploadRequest
+import com.seretail.inventarios.data.remote.dto.CreateSessionRequest
 import com.seretail.inventarios.data.remote.dto.NoEncontradoDto
 import com.seretail.inventarios.data.remote.dto.NoEncontradoUploadRequest
 import com.seretail.inventarios.data.remote.dto.TraspasoDto
@@ -37,8 +38,49 @@ class ActivoFijoRepository @Inject constructor(
 
     suspend fun getSession(id: Long): ActivoFijoSessionEntity? = activoFijoDao.getById(id)
 
+    suspend fun createSession(nombre: String, empresaId: Long, sucursalId: Long): Result<ActivoFijoSessionEntity> {
+        return try {
+            val response = apiService.createActivoFijoSession(CreateSessionRequest(nombre, empresaId, sucursalId))
+            if (response.isSuccessful) {
+                val dto = response.body()!!
+                val entity = ActivoFijoSessionEntity(
+                    id = dto.id,
+                    empresaId = dto.empresaId,
+                    sucursalId = dto.sucursalId,
+                    nombre = dto.nombre,
+                    estado = dto.estado ?: "activo",
+                    fechaCreacion = dto.createdAt,
+                    empresaNombre = dto.empresa?.nombre,
+                    sucursalNombre = dto.sucursal?.nombre,
+                )
+                activoFijoDao.insert(entity)
+                Result.success(entity)
+            } else {
+                Result.failure(Exception("Error al crear sesión (${response.code()})"))
+            }
+        } catch (e: Exception) {
+            val localId = -(System.currentTimeMillis() / 1000)
+            val entity = ActivoFijoSessionEntity(
+                id = localId,
+                empresaId = empresaId,
+                sucursalId = sucursalId,
+                nombre = nombre,
+                estado = "activo",
+                fechaCreacion = now(),
+            )
+            activoFijoDao.insert(entity)
+            Result.success(entity)
+        }
+    }
+
     suspend fun findProduct(barcode: String): ProductoEntity? =
         productoDao.findByBarcodeGlobal(barcode)
+
+    suspend fun findProductWithTransferCheck(barcode: String, sucursalId: Long): Pair<ProductoEntity?, Boolean> {
+        val product = productoDao.findByBarcodeGlobal(barcode) ?: return Pair(null, false)
+        val isTransfer = product.sucursalId != null && product.sucursalId != sucursalId
+        return Pair(product, isTransfer)
+    }
 
     suspend fun saveRegistro(registro: ActivoFijoRegistroEntity): Long {
         return registroDao.insertActivoFijo(registro)
@@ -132,13 +174,12 @@ class ActivoFijoRepository @Inject constructor(
         }
     }
 
-    suspend fun uploadPendingTraspasos(sessionId: Long): Result<Int> {
+    suspend fun uploadPendingTraspasos(): Result<Int> {
         val unsynced = registroDao.getUnsyncedTraspasos()
         if (unsynced.isEmpty()) return Result.success(0)
 
         try {
             val request = TraspasoUploadRequest(
-                inventarioId = sessionId,
                 traspasos = unsynced.map {
                     TraspasoDto(
                         registroId = it.registroId,
@@ -149,6 +190,9 @@ class ActivoFijoRepository @Inject constructor(
             )
             val response = apiService.uploadTraspasos(request)
             return if (response.isSuccessful) {
+                for (t in unsynced) {
+                    registroDao.updateTraspaso(t.copy(sincronizado = true))
+                }
                 Result.success(unsynced.size)
             } else {
                 Result.failure(Exception("Error al subir traspasos"))

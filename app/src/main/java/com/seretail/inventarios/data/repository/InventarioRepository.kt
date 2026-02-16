@@ -7,6 +7,7 @@ import com.seretail.inventarios.data.local.entity.InventarioEntity
 import com.seretail.inventarios.data.local.entity.InventarioRegistroEntity
 import com.seretail.inventarios.data.local.entity.ProductoEntity
 import com.seretail.inventarios.data.remote.ApiService
+import com.seretail.inventarios.data.remote.dto.CreateSessionRequest
 import com.seretail.inventarios.data.remote.dto.InventarioRegistroDto
 import com.seretail.inventarios.data.remote.dto.InventarioUploadRequest
 import kotlinx.coroutines.flow.Flow
@@ -28,6 +29,43 @@ class InventarioRepository @Inject constructor(
         registroDao.observeInventarioBySession(sessionId)
 
     suspend fun getSession(id: Long): InventarioEntity? = inventarioDao.getById(id)
+
+    suspend fun createSession(nombre: String, empresaId: Long, sucursalId: Long): Result<InventarioEntity> {
+        return try {
+            val response = apiService.createInventario(CreateSessionRequest(nombre, empresaId, sucursalId))
+            if (response.isSuccessful) {
+                val dto = response.body()!!
+                val entity = InventarioEntity(
+                    id = dto.id,
+                    empresaId = dto.empresaId,
+                    sucursalId = dto.sucursalId,
+                    nombre = dto.nombre,
+                    tipo = dto.tipo,
+                    estado = dto.estado ?: "activo",
+                    fechaCreacion = dto.createdAt,
+                    empresaNombre = dto.empresa?.nombre,
+                    sucursalNombre = dto.sucursal?.nombre,
+                )
+                inventarioDao.insert(entity)
+                Result.success(entity)
+            } else {
+                Result.failure(Exception("Error al crear sesión (${response.code()})"))
+            }
+        } catch (e: Exception) {
+            // Create local-only session with negative ID
+            val localId = -(System.currentTimeMillis() / 1000)
+            val entity = InventarioEntity(
+                id = localId,
+                empresaId = empresaId,
+                sucursalId = sucursalId,
+                nombre = nombre,
+                estado = "activo",
+                fechaCreacion = now(),
+            )
+            inventarioDao.insert(entity)
+            Result.success(entity)
+        }
+    }
 
     suspend fun findProduct(barcode: String, empresaId: Long): ProductoEntity? =
         productoDao.findByBarcode(barcode, empresaId)

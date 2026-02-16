@@ -227,7 +227,7 @@ public class BaseReader {
         bArr5[0] = (byte) (((b2 & 192) >> 6) | ((b & 192) >> 4));
         bArr8[0] = bArr15[10];
         bArr9[0] = bArr15[11];
-        this.maxScanTime = (r1 & UByte.MAX_VALUE) * 100;
+        this.maxScanTime = (bArr9[0] & UByte.MAX_VALUE) * 100;
         bArr10[0] = bArr15[12];
         bArr11[0] = bArr15[13];
         bArr12[0] = bArr15[14];

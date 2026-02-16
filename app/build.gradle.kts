@@ -116,7 +116,9 @@ dependencies {
     implementation(libs.coroutines.android)
 
     // Apache POI (Excel export)
-    implementation(libs.apache.poi)
+    implementation(libs.apache.poi) {
+        exclude(group = "org.apache.logging.log4j")
+    }
 
     // Desugaring (java.time on API < 26)
     coreLibraryDesugaring(libs.desugar.jdk)

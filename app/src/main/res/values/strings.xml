@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SER Inventarios</string>
+
+    <!-- Login -->
+    <string name="login_title">Iniciar Sesión</string>
+    <string name="login_server_url">URL del Servidor</string>
+    <string name="login_username">Usuario</string>
+    <string name="login_password">Contraseña</string>
+    <string name="login_button">Iniciar Sesión</string>
+    <string name="login_offline_mode">Modo sin conexión</string>
+    <string name="login_error_credentials">Usuario o contraseña incorrectos</string>
+    <string name="login_error_network">Sin conexión al servidor</string>
+    <string name="login_error_no_access">No tienes acceso a la aplicación</string>
+    <string name="login_enter_credentials">Ingresa usuario y contraseña</string>
+
+    <!-- Empresa/Sucursal Selection -->
+    <string name="selection_empresa">Selecciona una Empresa</string>
+    <string name="selection_sucursal">Selecciona una Sucursal</string>
+    <string name="selection_empresas_available">%d empresas disponibles</string>
+    <string name="selection_change">Cambiar</string>
+
+    <!-- Navigation -->
+    <string name="nav_dashboard">Inicio</string>
+    <string name="nav_inventario">Inventario</string>
+    <string name="nav_activo_fijo">Activo Fijo</string>
+    <string name="nav_settings">Ajustes</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Panel Principal</string>
+    <string name="dashboard_hello">Hola, %s</string>
+    <string name="dashboard_sessions">Sesiones</string>
+    <string name="dashboard_records">Registros</string>
+    <string name="dashboard_pending_sync">Pendientes</string>
+    <string name="dashboard_recent_activity">Actividad Reciente</string>
+    <string name="dashboard_sync_now">Sincronizar</string>
+    <string name="dashboard_last_sync">Última sincronización: %s</string>
+    <string name="dashboard_quick_actions">Acciones Rápidas</string>
+    <string name="dashboard_asset_breakdown">Desglose de Activos</string>
+    <string name="dashboard_inventario_desc">Captura de productos por código de barras</string>
+    <string name="dashboard_activo_desc">Auditoría de activos con fotos y ubicación</string>
+
+    <!-- Inventario -->
+    <string name="inventario_title">Inventario</string>
+    <string name="inventario_sessions">Sesiones de Inventario</string>
+    <string name="inventario_capture">Captura de Inventario</string>
+    <string name="inventario_barcode">Código de Barras</string>
+    <string name="inventario_product">Producto</string>
+    <string name="inventario_description">Descripción</string>
+    <string name="inventario_quantity">Cantidad</string>
+    <string name="inventario_location">Ubicación / Marbete</string>
+    <string name="inventario_save">Guardar</string>
+    <string name="inventario_scan">Escanear</string>
+    <string name="inventario_manual_entry">Captura Manual</string>
+    <string name="inventario_no_sessions">No hay sesiones de inventario</string>
+    <string name="inventario_items_captured">%d artículos capturados</string>
+    <string name="inventario_saved">Guardado (cant: %d)</string>
+    <string name="inventario_enter_barcode">Ingresa un código de barras</string>
+    <string name="inventario_not_in_catalog">Código no encontrado en catálogo</string>
+    <string name="inventario_invalid_code">Código no válido. Activa \'Forzados\'.</string>
+    <string name="inventario_create_from_web">Crea una sesión desde la plataforma web</string>
+
+    <!-- Inventario Options -->
+    <string name="inventario_options">Opciones de Captura</string>
+    <string name="inventario_opt_lote">Lotes</string>
+    <string name="inventario_opt_caducidad">Caducidad</string>
+    <string name="inventario_opt_factor">Factor (contenido caja)</string>
+    <string name="inventario_opt_serie">Número de Serie</string>
+    <string name="inventario_opt_validar">Validar Catálogo</string>
+    <string name="inventario_opt_forzados">Forzados (sin catálogo)</string>
+    <string name="inventario_opt_conteo1a1">1 a 1</string>
+    <string name="inventario_mode_1a1">Modo 1 a 1 (auto)</string>
+    <string name="inventario_options_button">Opciones</string>
+    <string name="inventario_delete_location">Eliminar ubicación</string>
+    <string name="inventario_records_deleted">%1$d registros eliminados de %2$s</string>
+    <string name="inventario_enter_location_first">Ingresa una ubicación primero</string>
+
+    <!-- Inventario Fields -->
+    <string name="inventario_lote">Lote</string>
+    <string name="inventario_caducidad">Caducidad (AAAA-MM-DD)</string>
+    <string name="inventario_factor">Factor (pzas/caja)</string>
+    <string name="inventario_numero_serie">Número de Serie</string>
+
+    <!-- Activo Fijo -->
+    <string name="activo_fijo_title">Activo Fijo</string>
+    <string name="activo_fijo_sessions">Sesiones de Activo Fijo</string>
+    <string name="activo_fijo_capture">Captura de Activo</string>
+    <string name="activo_fijo_code">Código</string>
+    <string name="activo_fijo_description">Descripción</string>
+    <string name="activo_fijo_category">Categoría</string>
+    <string name="activo_fijo_brand">Marca</string>
+    <string name="activo_fijo_model">Modelo</string>
+    <string name="activo_fijo_color">Color</string>
+    <string name="activo_fijo_serie">No. Serie</string>
+    <string name="activo_fijo_location">Ubicación</string>
+    <string name="activo_fijo_area">Área / Zona</string>
+    <string name="activo_fijo_status">Estado</string>
+    <string name="activo_fijo_photos">Fotografías</string>
+    <string name="activo_fijo_take_photo">Tomar Foto</string>
+    <string name="activo_fijo_photo_n">Foto %d</string>
+    <string name="activo_fijo_no_sessions">No hay sesiones de activo fijo</string>
+    <string name="activo_fijo_items_captured">%d activos capturados</string>
+    <string name="activo_fijo_saved">Activo guardado</string>
+    <string name="activo_fijo_updated">Activo actualizado</string>
+    <string name="activo_fijo_save">Guardar Activo</string>
+    <string name="activo_fijo_update">Actualizar Activo</string>
+    <string name="activo_fijo_edit_mode">Modo edición</string>
+    <string name="activo_fijo_cancel_edit">Cancelar</string>
+    <string name="activo_fijo_filter_all">Todos</string>
+    <string name="activo_fijo_create_from_web">Crea una sesión desde la plataforma web</string>
+
+    <!-- Statuses -->
+    <string name="status_found">Encontrado</string>
+    <string name="status_not_found">No Encontrado</string>
+    <string name="status_added">Agregado</string>
+    <string name="status_transferred">Traspasado</string>
+
+    <!-- Scanner -->
+    <string name="scanner_title">Escáner</string>
+    <string name="scanner_torch">Linterna</string>
+    <string name="scanner_instruction">Apunta la cámara al código de barras</string>
+    <string name="scanner_mode_inventario">Modo: Inventario</string>
+    <string name="scanner_mode_activo_fijo">Modo: Activo Fijo</string>
+    <string name="scanner_no_permission">Permiso de cámara requerido</string>
+    <string name="scanner_grant_permission">Otorga permiso de cámara en Ajustes del dispositivo</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_server">Servidor</string>
+    <string name="settings_server_url">URL del servidor</string>
+    <string name="settings_sync">Sincronización</string>
+    <string name="settings_auto_sync">Sincronización automática</string>
+    <string name="settings_sync_interval">Intervalo de sincronización</string>
+    <string name="settings_sync_wifi_only">Solo con WiFi</string>
+    <string name="settings_camera">Cámara y Escáner</string>
+    <string name="settings_use_camera">Usar cámara del dispositivo</string>
+    <string name="settings_printer">Impresora</string>
+    <string name="settings_printer_config">Configurar impresora Bluetooth</string>
+    <string name="settings_about">Acerca de</string>
+    <string name="settings_version">Versión %s</string>
+    <string name="settings_logout">Cerrar Sesión</string>
+    <string name="settings_logout_confirm">¿Estás seguro de que deseas cerrar sesión?</string>
+
+    <!-- Common -->
+    <string name="save">Guardar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="delete">Eliminar</string>
+    <string name="edit">Editar</string>
+    <string name="search">Buscar</string>
+    <string name="loading">Cargando…</string>
+    <string name="error">Error</string>
+    <string name="retry">Reintentar</string>
+    <string name="ok">Aceptar</string>
+    <string name="yes">Sí</string>
+    <string name="no">No</string>
+    <string name="empty_list">No hay datos disponibles</string>
+    <string name="sync_success">Sincronización completada</string>
+    <string name="sync_error">Error de sincronización</string>
+    <string name="sync_in_progress">Sincronizando…</string>
+    <string name="offline">Sin conexión</string>
+    <string name="online">Conectado</string>
+    <string name="no_description">Sin descripción</string>
+</resources>

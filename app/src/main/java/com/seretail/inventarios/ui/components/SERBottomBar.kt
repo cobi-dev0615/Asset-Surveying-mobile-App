@@ -3,7 +3,7 @@ package com.seretail.inventarios.ui.components
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.Nfc
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Badge
@@ -30,8 +30,8 @@ data class BottomNavItem(
 val bottomNavItems = listOf(
     BottomNavItem("dashboard", "Inicio", Icons.Default.Home),
     BottomNavItem("inventario_list", "Inventario", Icons.Default.Inventory2),
+    BottomNavItem("profile", "Mi Página", Icons.Default.Person),
     BottomNavItem("activofijo_list", "Activo Fijo", Icons.Default.QrCodeScanner),
-    BottomNavItem("rfid_capture", "RFID", Icons.Default.Nfc),
     BottomNavItem("settings", "Ajustes", Icons.Default.Settings),
 )
 

@@ -71,8 +71,8 @@ object Routes {
 private val bottomBarRoutes = setOf(
     Routes.DASHBOARD,
     Routes.INVENTARIO_LIST,
+    Routes.PROFILE,
     Routes.ACTIVOFIJO_LIST,
-    Routes.RFID_CAPTURE,
     Routes.SETTINGS,
 )
 

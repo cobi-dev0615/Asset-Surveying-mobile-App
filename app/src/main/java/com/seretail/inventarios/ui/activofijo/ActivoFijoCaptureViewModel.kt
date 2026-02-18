@@ -32,6 +32,9 @@ data class ActivoFijoCaptureUiState(
     val serie: String = "",
     val location: String = "",
     val area: String = "",
+    val comentarios: String = "",
+    val tagNuevo: String = "",
+    val serieRevisado: String = "",
     val selectedStatus: Int = 1,
     val isLoading: Boolean = true,
     val message: String? = null,
@@ -46,6 +49,15 @@ data class ActivoFijoCaptureUiState(
     val categories: List<String> = emptyList(),
     val selectedCategoryFilter: String? = null,
     val capturedCount: Int = 0,
+    // Area autocomplete
+    val areaSuggestions: List<String> = emptyList(),
+    val showAreaSuggestions: Boolean = false,
+    // Session stats
+    val catalogCount: Int = 0,
+    val foundCount: Int = 0,
+    val notFoundCount: Int = 0,
+    val addedCount: Int = 0,
+    val transferredCount: Int = 0,
     val showTransferDialog: Boolean = false,
     val transferOriginSucursalId: Long? = null,
     val transferOriginSucursalName: String? = null,
@@ -80,11 +92,17 @@ class ActivoFijoCaptureViewModel @Inject constructor(
             activoFijoRepository.observeRegistros(sessionId).collect { registros ->
                 val categories = registros.mapNotNull { it.categoria }.distinct().sorted()
                 val brands = registros.mapNotNull { it.marca }.distinct().sorted()
+                val areas = registros.mapNotNull { it.ubicacion }.distinct().sorted()
                 allBrands = brands
+                allAreas = areas
                 _uiState.value = _uiState.value.copy(
                     registros = registros,
                     categories = categories,
                     capturedCount = registros.size,
+                    foundCount = registros.count { it.statusId == 1 },
+                    notFoundCount = registros.count { it.statusId == 2 },
+                    addedCount = registros.count { it.statusId == 3 },
+                    transferredCount = registros.count { it.statusId == 4 },
                 )
             }
         }
@@ -97,8 +115,31 @@ class ActivoFijoCaptureViewModel @Inject constructor(
     fun onColorChanged(v: String) { _uiState.value = _uiState.value.copy(color = v) }
     fun onSerieChanged(v: String) { _uiState.value = _uiState.value.copy(serie = v) }
     fun onLocationChanged(v: String) { _uiState.value = _uiState.value.copy(location = v) }
-    fun onAreaChanged(v: String) { _uiState.value = _uiState.value.copy(area = v) }
+    fun onComentariosChanged(v: String) { _uiState.value = _uiState.value.copy(comentarios = v) }
+    fun onTagNuevoChanged(v: String) { _uiState.value = _uiState.value.copy(tagNuevo = v) }
+    fun onSerieRevisadoChanged(v: String) { _uiState.value = _uiState.value.copy(serieRevisado = v) }
     fun onStatusChanged(id: Int) { _uiState.value = _uiState.value.copy(selectedStatus = id) }
+
+    private var allAreas: List<String> = emptyList()
+
+    fun onAreaChanged(v: String) {
+        val suggestions = if (v.length >= 2) {
+            allAreas.filter { it.contains(v, ignoreCase = true) }.take(5)
+        } else emptyList()
+        _uiState.value = _uiState.value.copy(
+            area = v,
+            areaSuggestions = suggestions,
+            showAreaSuggestions = suggestions.isNotEmpty(),
+        )
+    }
+
+    fun selectAreaSuggestion(area: String) {
+        _uiState.value = _uiState.value.copy(area = area, showAreaSuggestions = false)
+    }
+
+    fun dismissAreaSuggestions() {
+        _uiState.value = _uiState.value.copy(showAreaSuggestions = false)
+    }
 
     fun onBrandChanged(v: String) {
         val suggestions = if (v.length >= 2) {
@@ -162,6 +203,9 @@ class ActivoFijoCaptureViewModel @Inject constructor(
             color = registro.color ?: "",
             serie = registro.serie ?: "",
             location = registro.ubicacion ?: "",
+            comentarios = registro.comentarios ?: "",
+            tagNuevo = registro.tagNuevo ?: "",
+            serieRevisado = registro.serieRevisado ?: "",
             selectedStatus = registro.statusId,
             photo1 = registro.imagen1,
             photo2 = registro.imagen2,
@@ -232,6 +276,9 @@ class ActivoFijoCaptureViewModel @Inject constructor(
                     color = state.color.ifBlank { null },
                     serie = state.serie.ifBlank { null },
                     ubicacion = state.location.ifBlank { null },
+                    comentarios = state.comentarios.ifBlank { null },
+                    tagNuevo = state.tagNuevo.ifBlank { null },
+                    serieRevisado = state.serieRevisado.ifBlank { null },
                     statusId = state.selectedStatus,
                     imagen1 = state.photo1,
                     imagen2 = state.photo2,
@@ -257,6 +304,9 @@ class ActivoFijoCaptureViewModel @Inject constructor(
                     color = state.color.ifBlank { null },
                     serie = state.serie.ifBlank { null },
                     ubicacion = state.location.ifBlank { null },
+                    comentarios = state.comentarios.ifBlank { null },
+                    tagNuevo = state.tagNuevo.ifBlank { null },
+                    serieRevisado = state.serieRevisado.ifBlank { null },
                     statusId = state.selectedStatus,
                     imagen1 = state.photo1,
                     imagen2 = state.photo2,
@@ -285,6 +335,9 @@ class ActivoFijoCaptureViewModel @Inject constructor(
             color = "",
             serie = "",
             location = state.area.ifBlank { state.location },
+            comentarios = "",
+            tagNuevo = "",
+            serieRevisado = "",
             selectedStatus = 1,
             photo1 = null,
             photo2 = null,
@@ -292,6 +345,7 @@ class ActivoFijoCaptureViewModel @Inject constructor(
             editingRegistroId = null,
             isEditMode = false,
             showBrandSuggestions = false,
+            showAreaSuggestions = false,
             message = null,
         )
     }
@@ -321,6 +375,9 @@ class ActivoFijoCaptureViewModel @Inject constructor(
                 color = state.color.ifBlank { null },
                 serie = state.serie.ifBlank { null },
                 ubicacion = state.location.ifBlank { null },
+                comentarios = state.comentarios.ifBlank { null },
+                tagNuevo = state.tagNuevo.ifBlank { null },
+                serieRevisado = state.serieRevisado.ifBlank { null },
                 statusId = 4, // Transferred
                 imagen1 = state.photo1,
                 imagen2 = state.photo2,

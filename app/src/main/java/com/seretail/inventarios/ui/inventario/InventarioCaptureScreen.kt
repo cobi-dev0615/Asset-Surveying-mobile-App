@@ -1,8 +1,11 @@
 package com.seretail.inventarios.ui.inventario
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,19 +16,20 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.seretail.inventarios.export.CsvExporter
 import com.seretail.inventarios.export.ExcelExporter
@@ -53,6 +58,9 @@ import com.seretail.inventarios.ui.components.SERTextField
 import com.seretail.inventarios.ui.components.SERTopBar
 import com.seretail.inventarios.ui.components.ScanResultCard
 import com.seretail.inventarios.ui.theme.DarkBackground
+import com.seretail.inventarios.ui.theme.DarkSurface
+import com.seretail.inventarios.ui.theme.DarkSurfaceVariant
+import com.seretail.inventarios.ui.theme.Error
 import com.seretail.inventarios.ui.theme.SERBlue
 import com.seretail.inventarios.ui.theme.TextMuted
 import com.seretail.inventarios.ui.theme.TextPrimary
@@ -105,6 +113,25 @@ fun InventarioCaptureScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = DarkBackground,
+        bottomBar = {
+            // Bottom stats bar
+            if (state.registros.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(DarkSurface)
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    StatItem(label = "CONTEO", value = "${state.totalQuantity}")
+                    StatItem(label = "REGISTROS", value = "${state.registroCount}")
+                    if (state.showFactor) {
+                        StatItem(label = "FACTOR", value = "${state.totalFactor}")
+                    }
+                }
+            }
+        },
     ) { padding ->
         if (state.isLoading) {
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
@@ -125,6 +152,21 @@ fun InventarioCaptureScreen(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    // Forced code warning
+                    if (state.isForcedCode) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Error.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = Error, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Código forzado (no en catálogo)", color = Error, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+
                     // Barcode row
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -148,13 +190,53 @@ fun InventarioCaptureScreen(
                         readOnly = true,
                     )
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Quantity row with conteo toggle
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         SERTextField(
                             value = state.quantity,
                             onValueChange = viewModel::onQuantityChanged,
-                            label = "Cantidad",
+                            label = if (state.conteoUnidad) "Cantidad (unidad)" else "Cantidad (caja)",
                             modifier = Modifier.weight(1f),
                         )
+                        FilterChip(
+                            selected = state.conteoUnidad,
+                            onClick = viewModel::toggleConteoUnidad,
+                            label = { Text(if (state.conteoUnidad) "Unidad" else "Caja", style = MaterialTheme.typography.labelSmall) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = SERBlue.copy(alpha = 0.2f),
+                                selectedLabelColor = SERBlue,
+                                containerColor = DarkSurfaceVariant,
+                                labelColor = TextMuted,
+                            ),
+                        )
+                    }
+
+                    // Factor + Serial row (conditional)
+                    if (state.showFactor || state.showSerial) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (state.showFactor) {
+                                SERTextField(
+                                    value = state.factor,
+                                    onValueChange = viewModel::onFactorChanged,
+                                    label = "Factor",
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            if (state.showSerial) {
+                                SERTextField(
+                                    value = state.serialNumber,
+                                    onValueChange = viewModel::onSerialNumberChanged,
+                                    label = "No. Serie",
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         SERTextField(
                             value = state.location,
                             onValueChange = viewModel::onLocationChanged,
@@ -163,13 +245,33 @@ fun InventarioCaptureScreen(
                         )
                     }
 
+                    // Lote row with autocomplete dropdown
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SERTextField(
-                            value = state.lot,
-                            onValueChange = viewModel::onLotChanged,
-                            label = "Lote",
-                            modifier = Modifier.weight(1f),
-                        )
+                        Box(modifier = Modifier.weight(1f)) {
+                            SERTextField(
+                                value = state.lot,
+                                onValueChange = viewModel::onLotChanged,
+                                label = "Lote",
+                            )
+                            DropdownMenu(
+                                expanded = state.showLoteSuggestions,
+                                onDismissRequest = viewModel::dismissLoteSuggestions,
+                            ) {
+                                state.loteSuggestions.forEach { lote ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Column {
+                                                Text(lote.lote, color = TextPrimary, style = MaterialTheme.typography.bodyMedium)
+                                                if (lote.caducidad != null) {
+                                                    Text("Cad: ${lote.caducidad}", color = TextMuted, style = MaterialTheme.typography.labelSmall)
+                                                }
+                                            }
+                                        },
+                                        onClick = { viewModel.onLotSelected(lote) },
+                                    )
+                                }
+                            }
+                        }
                         SERTextField(
                             value = state.expiry,
                             onValueChange = viewModel::onExpiryChanged,
@@ -204,7 +306,7 @@ fun InventarioCaptureScreen(
                     style = MaterialTheme.typography.titleSmall,
                     color = TextSecondary,
                 )
-                androidx.compose.material3.TextButton(onClick = { showForm = !showForm }) {
+                TextButton(onClick = { showForm = !showForm }) {
                     Text(
                         if (showForm) "Ocultar formulario" else "Mostrar formulario",
                         color = SERBlue,
@@ -219,7 +321,7 @@ fun InventarioCaptureScreen(
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp),
+                contentPadding = PaddingValues(bottom = 16.dp),
             ) {
                 items(state.registros, key = { it.id }) { registro ->
                     ScanResultCard(
@@ -254,6 +356,24 @@ fun InventarioCaptureScreen(
                     CsvExporter.shareFile(context, uri)
                 }) { Text("CSV", color = SERBlue) }
             },
+        )
+    }
+}
+
+@Composable
+private fun StatItem(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = SERBlue,
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = TextMuted,
+            fontSize = 10.sp,
         )
     }
 }

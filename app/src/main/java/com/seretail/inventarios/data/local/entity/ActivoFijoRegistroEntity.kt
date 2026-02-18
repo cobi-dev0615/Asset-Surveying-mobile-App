@@ -21,6 +21,11 @@ data class ActivoFijoRegistroEntity(
     val color: String? = null,
     val serie: String? = null,
     val ubicacion: String? = null,
+    val comentarios: String? = null,
+    @ColumnInfo(name = "tag_nuevo")
+    val tagNuevo: String? = null,
+    @ColumnInfo(name = "serie_revisado")
+    val serieRevisado: String? = null,
     @ColumnInfo(name = "status_id")
     val statusId: Int = 1,
     val imagen1: String? = null,

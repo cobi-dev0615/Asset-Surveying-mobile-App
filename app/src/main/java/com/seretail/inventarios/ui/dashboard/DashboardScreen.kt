@@ -1,6 +1,7 @@
 package com.seretail.inventarios.ui.dashboard
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,8 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -40,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -50,6 +52,10 @@ import com.seretail.inventarios.ui.components.SERTopBar
 import com.seretail.inventarios.ui.theme.DarkBackground
 import com.seretail.inventarios.ui.theme.DarkSurface
 import com.seretail.inventarios.ui.theme.Info
+import com.seretail.inventarios.ui.theme.RoleAdmin
+import com.seretail.inventarios.ui.theme.RoleCapturista
+import com.seretail.inventarios.ui.theme.RoleInvitado
+import com.seretail.inventarios.ui.theme.RoleSupervisor
 import com.seretail.inventarios.ui.theme.SERBlue
 import com.seretail.inventarios.ui.theme.StatusAdded
 import com.seretail.inventarios.ui.theme.StatusFound
@@ -64,10 +70,24 @@ import com.seretail.inventarios.ui.theme.Warning
 fun DashboardScreen(
     onNavigateToInventario: () -> Unit = {},
     onNavigateToActivoFijo: () -> Unit = {},
+    onProfileClick: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val avatarInitials = state.userName
+        ?.split(" ")
+        ?.take(2)
+        ?.mapNotNull { it.firstOrNull()?.uppercaseChar() }
+        ?.joinToString("") ?: "?"
+
+    val avatarColor = when (state.userRolId) {
+        1 -> RoleAdmin
+        2 -> RoleSupervisor
+        3 -> RoleCapturista
+        else -> RoleInvitado
+    }
 
     LaunchedEffect(state.syncMessage) {
         state.syncMessage?.let {
@@ -82,6 +102,24 @@ fun DashboardScreen(
                 title = "SER Inventarios",
                 isOnline = state.isOnline,
                 actions = {
+                    // Avatar button
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(avatarColor)
+                            .clickable(onClick = onProfileClick),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = avatarInitials,
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                    Spacer(Modifier.width(4.dp))
+                    // Sync button
                     if (state.isSyncing) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp).padding(end = 8.dp),

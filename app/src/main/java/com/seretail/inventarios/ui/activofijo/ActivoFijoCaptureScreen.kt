@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,8 +26,10 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -66,6 +69,8 @@ import com.seretail.inventarios.export.CsvExporter
 import com.seretail.inventarios.export.ExcelExporter
 import com.seretail.inventarios.printing.BluetoothPrinterManager
 import com.seretail.inventarios.printing.PrintTemplates
+import com.seretail.inventarios.ui.components.PieChart
+import com.seretail.inventarios.ui.components.PieSlice
 import com.seretail.inventarios.ui.components.PhotoSlotRow
 import com.seretail.inventarios.ui.components.SERTextField
 import com.seretail.inventarios.ui.components.SERTopBar
@@ -76,6 +81,10 @@ import com.seretail.inventarios.ui.theme.DarkSurface
 import com.seretail.inventarios.ui.theme.DarkSurfaceVariant
 import com.seretail.inventarios.ui.theme.Error
 import com.seretail.inventarios.ui.theme.SERBlue
+import com.seretail.inventarios.ui.theme.StatusAdded
+import com.seretail.inventarios.ui.theme.StatusFound
+import com.seretail.inventarios.ui.theme.StatusNotFound
+import com.seretail.inventarios.ui.theme.StatusTransferred
 import com.seretail.inventarios.ui.theme.TextMuted
 import com.seretail.inventarios.ui.theme.TextPrimary
 import com.seretail.inventarios.ui.theme.TextSecondary
@@ -86,6 +95,8 @@ fun ActivoFijoCaptureScreen(
     sessionId: Long,
     onBackClick: () -> Unit,
     onScanBarcode: () -> Unit,
+    onCatalogClick: (() -> Unit)? = null,
+    onSearchClick: (() -> Unit)? = null,
     printerManager: BluetoothPrinterManager? = null,
     viewModel: ActivoFijoCaptureViewModel = hiltViewModel(),
 ) {
@@ -134,6 +145,16 @@ fun ActivoFijoCaptureScreen(
                 title = state.session?.nombre ?: "Captura",
                 onBackClick = onBackClick,
                 actions = {
+                    if (onSearchClick != null) {
+                        IconButton(onClick = onSearchClick) {
+                            Icon(Icons.Default.Search, contentDescription = "Consulta", tint = TextMuted)
+                        }
+                    }
+                    if (onCatalogClick != null) {
+                        IconButton(onClick = onCatalogClick) {
+                            Icon(Icons.Default.Inventory2, contentDescription = "Catálogo", tint = TextMuted)
+                        }
+                    }
                     if (state.registros.isNotEmpty()) {
                         IconButton(onClick = { showExportDialog = true }) {
                             Icon(Icons.Default.FileDownload, contentDescription = "Exportar", tint = TextMuted)
@@ -303,12 +324,52 @@ fun ActivoFijoCaptureScreen(
                         }
                     }
 
-                    // Area
+                    // Area with autocomplete
+                    item {
+                        Box {
+                            SERTextField(
+                                value = state.area,
+                                onValueChange = viewModel::onAreaChanged,
+                                label = "Área (se mantiene entre capturas)",
+                            )
+                            DropdownMenu(
+                                expanded = state.showAreaSuggestions,
+                                onDismissRequest = viewModel::dismissAreaSuggestions,
+                            ) {
+                                state.areaSuggestions.forEach { suggestion ->
+                                    DropdownMenuItem(
+                                        text = { Text(suggestion, color = TextPrimary) },
+                                        onClick = { viewModel.selectAreaSuggestion(suggestion) },
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Tag Nuevo + Serie Revisado
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SERTextField(
+                                value = state.tagNuevo,
+                                onValueChange = viewModel::onTagNuevoChanged,
+                                label = "Tag Nuevo",
+                                modifier = Modifier.weight(1f),
+                            )
+                            SERTextField(
+                                value = state.serieRevisado,
+                                onValueChange = viewModel::onSerieRevisadoChanged,
+                                label = "Serie Revisado",
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+
+                    // Comentarios
                     item {
                         SERTextField(
-                            value = state.area,
-                            onValueChange = viewModel::onAreaChanged,
-                            label = "Área (se mantiene entre capturas)",
+                            value = state.comentarios,
+                            onValueChange = viewModel::onComentariosChanged,
+                            label = "Comentarios",
                         )
                     }
 
@@ -356,6 +417,17 @@ fun ActivoFijoCaptureScreen(
             } else {
                 // Registros list
                 Column(modifier = Modifier.weight(1f)) {
+                    // Session stats dashboard
+                    if (state.registros.isNotEmpty()) {
+                        SessionStatsDashboard(
+                            total = state.capturedCount,
+                            found = state.foundCount,
+                            notFound = state.notFoundCount,
+                            added = state.addedCount,
+                            transferred = state.transferredCount,
+                        )
+                    }
+
                     // Category filter
                     if (state.categories.isNotEmpty()) {
                         LazyRow(
@@ -481,5 +553,70 @@ fun ActivoFijoCaptureScreen(
             },
             containerColor = DarkSurface,
         )
+    }
+}
+
+@Composable
+private fun SessionStatsDashboard(
+    total: Int,
+    found: Int,
+    notFound: Int,
+    added: Int,
+    transferred: Int,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Pie chart
+            PieChart(
+                slices = listOf(
+                    PieSlice(found.toFloat(), StatusFound),
+                    PieSlice(notFound.toFloat(), StatusNotFound),
+                    PieSlice(added.toFloat(), StatusAdded),
+                    PieSlice(transferred.toFloat(), StatusTransferred),
+                ),
+                size = 72.dp,
+                strokeWidth = 10.dp,
+            )
+            Spacer(Modifier.width(16.dp))
+            // Stats grid
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    StatBadge("Total", "$total", SERBlue, Modifier.weight(1f))
+                    StatBadge("Encontrados", "$found", StatusFound, Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    StatBadge("No Encontrados", "$notFound", StatusNotFound, Modifier.weight(1f))
+                    StatBadge("Agregados", "$added", StatusAdded, Modifier.weight(1f))
+                }
+                if (transferred > 0) {
+                    StatBadge("Traspasados", "$transferred", StatusTransferred, Modifier.fillMaxWidth())
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatBadge(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .background(color.copy(alpha = 0.1f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = color)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = TextMuted, maxLines = 1)
     }
 }

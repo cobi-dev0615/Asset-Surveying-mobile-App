@@ -39,6 +39,16 @@ class PreferencesManager @Inject constructor(
         private val KEY_PRINTER_MAC = stringPreferencesKey("printer_mac")
         private val KEY_PRINTER_NAME = stringPreferencesKey("printer_name")
         private val KEY_PRINTER_TYPE = stringPreferencesKey("printer_type")
+        // Capture options
+        private val KEY_VALIDATE_CATALOG = booleanPreferencesKey("validate_catalog")
+        private val KEY_ALLOW_FORCED = booleanPreferencesKey("allow_forced_codes")
+        private val KEY_CAPTURE_FACTOR = booleanPreferencesKey("capture_factor")
+        private val KEY_CAPTURE_LOTES = booleanPreferencesKey("capture_lotes")
+        private val KEY_CAPTURE_SERIAL = booleanPreferencesKey("capture_serial")
+        private val KEY_CAPTURE_NEGATIVES = booleanPreferencesKey("capture_negatives")
+        private val KEY_CAPTURE_ZEROS = booleanPreferencesKey("capture_zeros")
+        private val KEY_CAPTURE_GPS = booleanPreferencesKey("capture_gps")
+        private val KEY_CONTEO_UNIDAD = booleanPreferencesKey("conteo_unidad")
     }
 
     val token: Flow<String?> = dataStore.data.map { it[KEY_TOKEN] }
@@ -55,6 +65,16 @@ class PreferencesManager @Inject constructor(
     val printerMac: Flow<String?> = dataStore.data.map { it[KEY_PRINTER_MAC] }
     val printerName: Flow<String?> = dataStore.data.map { it[KEY_PRINTER_NAME] }
     val printerType: Flow<String?> = dataStore.data.map { it[KEY_PRINTER_TYPE] }
+    // Capture options
+    val validateCatalog: Flow<Boolean> = dataStore.data.map { it[KEY_VALIDATE_CATALOG] ?: true }
+    val allowForcedCodes: Flow<Boolean> = dataStore.data.map { it[KEY_ALLOW_FORCED] ?: false }
+    val captureFactor: Flow<Boolean> = dataStore.data.map { it[KEY_CAPTURE_FACTOR] ?: false }
+    val captureLotes: Flow<Boolean> = dataStore.data.map { it[KEY_CAPTURE_LOTES] ?: true }
+    val captureSerial: Flow<Boolean> = dataStore.data.map { it[KEY_CAPTURE_SERIAL] ?: false }
+    val captureNegatives: Flow<Boolean> = dataStore.data.map { it[KEY_CAPTURE_NEGATIVES] ?: false }
+    val captureZeros: Flow<Boolean> = dataStore.data.map { it[KEY_CAPTURE_ZEROS] ?: false }
+    val captureGps: Flow<Boolean> = dataStore.data.map { it[KEY_CAPTURE_GPS] ?: false }
+    val conteoUnidad: Flow<Boolean> = dataStore.data.map { it[KEY_CONTEO_UNIDAD] ?: true }
 
     suspend fun saveToken(token: String) {
         dataStore.edit { it[KEY_TOKEN] = token }
@@ -105,6 +125,17 @@ class PreferencesManager @Inject constructor(
             it[KEY_PRINTER_TYPE] = type
         }
     }
+
+    // Capture option savers
+    suspend fun saveValidateCatalog(v: Boolean) { dataStore.edit { it[KEY_VALIDATE_CATALOG] = v } }
+    suspend fun saveAllowForcedCodes(v: Boolean) { dataStore.edit { it[KEY_ALLOW_FORCED] = v } }
+    suspend fun saveCaptureFactor(v: Boolean) { dataStore.edit { it[KEY_CAPTURE_FACTOR] = v } }
+    suspend fun saveCaptureLotes(v: Boolean) { dataStore.edit { it[KEY_CAPTURE_LOTES] = v } }
+    suspend fun saveCaptureSerial(v: Boolean) { dataStore.edit { it[KEY_CAPTURE_SERIAL] = v } }
+    suspend fun saveCaptureNegatives(v: Boolean) { dataStore.edit { it[KEY_CAPTURE_NEGATIVES] = v } }
+    suspend fun saveCaptureZeros(v: Boolean) { dataStore.edit { it[KEY_CAPTURE_ZEROS] = v } }
+    suspend fun saveCaptureGps(v: Boolean) { dataStore.edit { it[KEY_CAPTURE_GPS] = v } }
+    suspend fun saveConteoUnidad(v: Boolean) { dataStore.edit { it[KEY_CONTEO_UNIDAD] = v } }
 
     suspend fun clearSession() {
         dataStore.edit {

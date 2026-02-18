@@ -302,6 +302,55 @@ fun SettingsScreen(
                 Text("Importar Catálogo (CSV/Excel)", color = SERBlue)
             }
 
+            // Capture Options
+            SectionHeader("Opciones de Captura")
+
+            SettingsSwitch(
+                label = "Validar catálogo",
+                checked = state.validateCatalog,
+                onCheckedChange = viewModel::onValidateCatalogChanged,
+            )
+            SettingsSwitch(
+                label = "Permitir códigos forzados",
+                checked = state.allowForcedCodes,
+                onCheckedChange = viewModel::onAllowForcedCodesChanged,
+            )
+            SettingsSwitch(
+                label = "Capturar factor",
+                checked = state.captureFactor,
+                onCheckedChange = viewModel::onCaptureFactorChanged,
+            )
+            SettingsSwitch(
+                label = "Capturar lotes",
+                checked = state.captureLotes,
+                onCheckedChange = viewModel::onCaptureLotesChanged,
+            )
+            SettingsSwitch(
+                label = "Capturar número de serie",
+                checked = state.captureSerial,
+                onCheckedChange = viewModel::onCaptureSerialChanged,
+            )
+            SettingsSwitch(
+                label = "Permitir negativos",
+                checked = state.captureNegatives,
+                onCheckedChange = viewModel::onCaptureNegativesChanged,
+            )
+            SettingsSwitch(
+                label = "Capturar ceros",
+                checked = state.captureZeros,
+                onCheckedChange = viewModel::onCaptureZerosChanged,
+            )
+            SettingsSwitch(
+                label = "Capturar GPS",
+                checked = state.captureGps,
+                onCheckedChange = viewModel::onCaptureGpsChanged,
+            )
+            SettingsSwitch(
+                label = "Conteo por unidad",
+                checked = state.conteoUnidad,
+                onCheckedChange = viewModel::onConteoUnidadChanged,
+            )
+
             // Logout
             Spacer(Modifier.height(16.dp))
 

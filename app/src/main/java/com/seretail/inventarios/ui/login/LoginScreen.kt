@@ -17,6 +17,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -26,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -202,6 +205,64 @@ fun LoginScreen(
                 text = "v1.0.0 — SER Inventarios",
                 style = MaterialTheme.typography.labelSmall,
                 color = TextMuted,
+            )
+
+            TextButton(onClick = viewModel::toggleServerDialog) {
+                Icon(Icons.Default.Wifi, contentDescription = null, tint = TextMuted, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.size(6.dp))
+                Text("Conexión", color = TextMuted, style = MaterialTheme.typography.labelSmall)
+            }
+        }
+
+        // Server URL dialog
+        if (state.showServerDialog) {
+            AlertDialog(
+                onDismissRequest = viewModel::toggleServerDialog,
+                containerColor = DarkSurface,
+                title = { Text("Conexión de servidor", color = TextPrimary) },
+                text = {
+                    Column {
+                        OutlinedTextField(
+                            value = state.serverUrl,
+                            onValueChange = viewModel::onServerUrlChanged,
+                            label = { Text("URL del servidor", color = TextMuted) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary,
+                                focusedBorderColor = SERBlue,
+                                unfocusedBorderColor = DarkBorder,
+                                focusedContainerColor = DarkSurfaceVariant,
+                                unfocusedContainerColor = DarkSurfaceVariant,
+                                cursorColor = SERBlue,
+                                focusedLabelColor = SERBlue,
+                                unfocusedLabelColor = TextMuted,
+                            ),
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Cambiar la información de conexión puede ocasionar el mal funcionamiento de la aplicación.",
+                            color = Error,
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Error.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+                                .padding(8.dp),
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = viewModel::saveServerUrl,
+                        colors = ButtonDefaults.buttonColors(containerColor = SERBlue),
+                    ) { Text("Aceptar") }
+                },
+                dismissButton = {
+                    TextButton(onClick = viewModel::toggleServerDialog) {
+                        Text("Cancelar", color = TextMuted)
+                    }
+                },
             )
         }
     }

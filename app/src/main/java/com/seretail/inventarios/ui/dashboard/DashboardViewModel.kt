@@ -3,6 +3,7 @@ package com.seretail.inventarios.ui.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seretail.inventarios.data.local.dao.RegistroDao
+import com.seretail.inventarios.data.repository.AuthRepository
 import com.seretail.inventarios.data.repository.SyncRepository
 import com.seretail.inventarios.util.NetworkMonitor
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,6 +24,8 @@ data class DashboardUiState(
     val isOnline: Boolean = true,
     val isSyncing: Boolean = false,
     val syncMessage: String? = null,
+    val userName: String? = null,
+    val userRolId: Int? = null,
 )
 
 @HiltViewModel
@@ -30,6 +33,7 @@ class DashboardViewModel @Inject constructor(
     private val registroDao: RegistroDao,
     private val syncRepository: SyncRepository,
     private val networkMonitor: NetworkMonitor,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -38,6 +42,7 @@ class DashboardViewModel @Inject constructor(
     init {
         loadStats()
         observeNetwork()
+        loadUser()
     }
 
     private fun loadStats() {
@@ -79,6 +84,17 @@ class DashboardViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(isSyncing = false, syncMessage = "Sincronización completa")
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isSyncing = false, syncMessage = "Error: ${e.message}")
+            }
+        }
+    }
+
+    private fun loadUser() {
+        viewModelScope.launch {
+            authRepository.currentUser.collectLatest { user ->
+                _uiState.value = _uiState.value.copy(
+                    userName = user?.nombres,
+                    userRolId = user?.rolId,
+                )
             }
         }
     }

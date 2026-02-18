@@ -24,6 +24,15 @@ interface ProductoDao {
     @Query("SELECT COUNT(*) FROM productos WHERE empresa_id = :empresaId")
     suspend fun countByEmpresa(empresaId: Long): Int
 
+    @Query("SELECT * FROM productos WHERE empresa_id = :empresaId AND (descripcion LIKE '%' || :query || '%' OR codigo_barras LIKE '%' || :query || '%') ORDER BY descripcion LIMIT 100")
+    suspend fun search(empresaId: Long, query: String): List<ProductoEntity>
+
+    @Query("SELECT DISTINCT categoria FROM productos WHERE empresa_id = :empresaId AND categoria IS NOT NULL ORDER BY categoria")
+    suspend fun getCategories(empresaId: Long): List<String>
+
+    @Query("SELECT * FROM productos WHERE empresa_id = :empresaId AND categoria = :category ORDER BY descripcion")
+    suspend fun getByCategory(empresaId: Long, category: String): List<ProductoEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(productos: List<ProductoEntity>)
 

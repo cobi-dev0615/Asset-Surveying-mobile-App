@@ -43,6 +43,16 @@ data class SettingsUiState(
     val isSyncing: Boolean = false,
     val message: String? = null,
     val loggedOut: Boolean = false,
+    // Capture options
+    val validateCatalog: Boolean = true,
+    val allowForcedCodes: Boolean = false,
+    val captureFactor: Boolean = false,
+    val captureLotes: Boolean = true,
+    val captureSerial: Boolean = false,
+    val captureNegatives: Boolean = false,
+    val captureZeros: Boolean = false,
+    val captureGps: Boolean = false,
+    val conteoUnidad: Boolean = true,
 )
 
 @HiltViewModel
@@ -81,6 +91,16 @@ class SettingsViewModel @Inject constructor(
                 printerName = preferencesManager.printerName.first(),
                 printerType = preferencesManager.printerType.first(),
                 lastSync = preferencesManager.lastSync.first(),
+                // Capture options
+                validateCatalog = preferencesManager.validateCatalog.first(),
+                allowForcedCodes = preferencesManager.allowForcedCodes.first(),
+                captureFactor = preferencesManager.captureFactor.first(),
+                captureLotes = preferencesManager.captureLotes.first(),
+                captureSerial = preferencesManager.captureSerial.first(),
+                captureNegatives = preferencesManager.captureNegatives.first(),
+                captureZeros = preferencesManager.captureZeros.first(),
+                captureGps = preferencesManager.captureGps.first(),
+                conteoUnidad = preferencesManager.conteoUnidad.first(),
             )
             // Load sucursales for selected empresa
             _uiState.value.selectedEmpresaId?.let { loadSucursales(it) }
@@ -194,6 +214,44 @@ class SettingsViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    // Capture option toggles
+    fun onValidateCatalogChanged(v: Boolean) {
+        _uiState.value = _uiState.value.copy(validateCatalog = v)
+        viewModelScope.launch { preferencesManager.saveValidateCatalog(v) }
+    }
+    fun onAllowForcedCodesChanged(v: Boolean) {
+        _uiState.value = _uiState.value.copy(allowForcedCodes = v)
+        viewModelScope.launch { preferencesManager.saveAllowForcedCodes(v) }
+    }
+    fun onCaptureFactorChanged(v: Boolean) {
+        _uiState.value = _uiState.value.copy(captureFactor = v)
+        viewModelScope.launch { preferencesManager.saveCaptureFactor(v) }
+    }
+    fun onCaptureLotesChanged(v: Boolean) {
+        _uiState.value = _uiState.value.copy(captureLotes = v)
+        viewModelScope.launch { preferencesManager.saveCaptureLotes(v) }
+    }
+    fun onCaptureSerialChanged(v: Boolean) {
+        _uiState.value = _uiState.value.copy(captureSerial = v)
+        viewModelScope.launch { preferencesManager.saveCaptureSerial(v) }
+    }
+    fun onCaptureNegativesChanged(v: Boolean) {
+        _uiState.value = _uiState.value.copy(captureNegatives = v)
+        viewModelScope.launch { preferencesManager.saveCaptureNegatives(v) }
+    }
+    fun onCaptureZerosChanged(v: Boolean) {
+        _uiState.value = _uiState.value.copy(captureZeros = v)
+        viewModelScope.launch { preferencesManager.saveCaptureZeros(v) }
+    }
+    fun onCaptureGpsChanged(v: Boolean) {
+        _uiState.value = _uiState.value.copy(captureGps = v)
+        viewModelScope.launch { preferencesManager.saveCaptureGps(v) }
+    }
+    fun onConteoUnidadChanged(v: Boolean) {
+        _uiState.value = _uiState.value.copy(conteoUnidad = v)
+        viewModelScope.launch { preferencesManager.saveConteoUnidad(v) }
     }
 
     fun logout() {

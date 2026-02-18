@@ -100,6 +100,8 @@ class InventarioRepository @Inject constructor(
                             ubicacion = it.ubicacion,
                             lote = it.lote,
                             fechaCaducidad = it.caducidad,
+                            factor = it.factor,
+                            numeroSerie = it.numeroSerie,
                             usuarioId = it.usuarioId,
                             fechaCaptura = it.fechaCaptura,
                         )

@@ -6,8 +6,10 @@ import com.seretail.inventarios.data.local.dao.EmpresaDao
 import com.seretail.inventarios.data.local.dao.SucursalDao
 import com.seretail.inventarios.data.local.entity.EmpresaEntity
 import com.seretail.inventarios.data.local.entity.SucursalEntity
+import com.seretail.inventarios.data.repository.AuthRepository
 import com.seretail.inventarios.data.repository.SyncRepository
 import com.seretail.inventarios.util.PreferencesManager
+import retrofit2.HttpException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +29,7 @@ data class SelectionUiState(
     val showConfirmDialog: Boolean = false,
     val selectionComplete: Boolean = false,
     val error: String? = null,
+    val authFailed: Boolean = false,
 )
 
 @HiltViewModel
@@ -35,6 +38,7 @@ class EmpresaSucursalSelectionViewModel @Inject constructor(
     private val sucursalDao: SucursalDao,
     private val preferencesManager: PreferencesManager,
     private val syncRepository: SyncRepository,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SelectionUiState())
@@ -58,10 +62,18 @@ class EmpresaSucursalSelectionViewModel @Inject constructor(
                         empresas = synced, isLoading = false, isSyncing = false,
                     )
                 } catch (e: Exception) {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false, isSyncing = false,
-                        error = "Error al cargar empresas: ${e.message}",
-                    )
+                    val isAuthError = e is HttpException && e.code() == 401
+                    if (isAuthError) {
+                        authRepository.logout()
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false, isSyncing = false, authFailed = true,
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false, isSyncing = false,
+                            error = "Error al cargar empresas: ${e.message}",
+                        )
+                    }
                 }
             } else {
                 _uiState.value = _uiState.value.copy(empresas = empresas, isLoading = false)

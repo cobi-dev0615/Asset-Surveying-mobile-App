@@ -13,8 +13,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Wifi
@@ -44,8 +44,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.seretail.inventarios.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.seretail.inventarios.ui.theme.DarkBackground
 import com.seretail.inventarios.ui.theme.DarkBorder
@@ -84,22 +88,20 @@ fun LoginScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Logo / branding
-            Icon(
-                imageVector = Icons.Default.Inventory2,
-                contentDescription = null,
-                tint = SERBlue,
-                modifier = Modifier.size(64.dp),
+            Image(
+                painter = painterResource(id = R.drawable.logo_ser),
+                contentDescription = "SER Logo",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp),
+                contentScale = ContentScale.Fit,
+                colorFilter = ColorFilter.tint(TextPrimary),
             )
             Text(
                 text = "SER Inventarios",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary,
-            )
-            Text(
-                text = "Servicios Empresariales Retail",
-                style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary,
             )
 
             Spacer(modifier = Modifier.height(16.dp))

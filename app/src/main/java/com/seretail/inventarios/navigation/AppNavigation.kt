@@ -88,9 +88,16 @@ fun AppNavigation() {
 
     LaunchedEffect(Unit) {
         val token = preferencesManager.token.first()
+        val user = navViewModel.authRepository.getCurrentUser()
+        // Must have BOTH a token AND a valid user in the local DB
+        val isLoggedIn = token != null && user != null
+        if (token != null && user == null) {
+            // Stale token without user data — clear it
+            preferencesManager.clearSession()
+        }
         val empresaId = preferencesManager.empresaId.first()
-        authState = token != null
-        needsEmpresaSelection = token != null && empresaId == null
+        authState = isLoggedIn
+        needsEmpresaSelection = isLoggedIn && empresaId == null
     }
 
     // Show loading while checking auth
@@ -161,6 +168,12 @@ fun AppNavigation() {
                         needsEmpresaSelection = false
                         navController.navigate(Routes.DASHBOARD) {
                             popUpTo(Routes.EMPRESA_SELECTION) { inclusive = true }
+                        }
+                    },
+                    onAuthFailed = {
+                        authState = false
+                        navController.navigate(Routes.LOGIN) {
+                            popUpTo(0) { inclusive = true }
                         }
                     },
                 )

@@ -56,12 +56,17 @@ import com.seretail.inventarios.ui.theme.TextSecondary
 @Composable
 fun EmpresaSucursalSelectionScreen(
     onSelectionComplete: () -> Unit,
+    onAuthFailed: () -> Unit = {},
     viewModel: EmpresaSucursalSelectionViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
 
     LaunchedEffect(state.selectionComplete) {
         if (state.selectionComplete) onSelectionComplete()
+    }
+
+    LaunchedEffect(state.authFailed) {
+        if (state.authFailed) onAuthFailed()
     }
 
     val title = if (state.step == 1) "EMPRESAS DISPONIBLES" else "SUCURSALES DISPONIBLES"

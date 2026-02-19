@@ -125,6 +125,16 @@ fun EmpresaSucursalSelectionScreen(
                 ),
             )
 
+            // Error message
+            if (state.error != null) {
+                Text(
+                    text = state.error!!,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+            }
+
             if (state.isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = SERBlue)
@@ -132,6 +142,31 @@ fun EmpresaSucursalSelectionScreen(
             } else if (state.step == 1) {
                 // Empresa list
                 val items = viewModel.getFilteredEmpresas()
+                if (items.isEmpty()) {
+                    // Empty state with skip option
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                "No se encontraron empresas",
+                                color = TextMuted,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                "Verifica la conexión al servidor",
+                                color = TextMuted,
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            Spacer(Modifier.height(24.dp))
+                            TextButton(onClick = onSelectionComplete) {
+                                Text("Omitir", color = SERBlue, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+                }
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(items, key = { it.id }) { empresa ->
                         Row(

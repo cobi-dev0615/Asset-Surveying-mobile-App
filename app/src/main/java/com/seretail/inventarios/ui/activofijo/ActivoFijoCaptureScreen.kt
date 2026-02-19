@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Search
@@ -97,6 +98,7 @@ fun ActivoFijoCaptureScreen(
     onScanBarcode: () -> Unit,
     onCatalogClick: (() -> Unit)? = null,
     onSearchClick: (() -> Unit)? = null,
+    onRfidClick: (() -> Unit)? = null,
     printerManager: BluetoothPrinterManager? = null,
     viewModel: ActivoFijoCaptureViewModel = hiltViewModel(),
 ) {
@@ -153,6 +155,11 @@ fun ActivoFijoCaptureScreen(
                     if (onCatalogClick != null) {
                         IconButton(onClick = onCatalogClick) {
                             Icon(Icons.Default.Inventory2, contentDescription = "Catálogo", tint = TextMuted)
+                        }
+                    }
+                    if (onRfidClick != null) {
+                        IconButton(onClick = onRfidClick) {
+                            Icon(Icons.Default.Nfc, contentDescription = "RFID", tint = TextMuted)
                         }
                     }
                     if (state.registros.isNotEmpty()) {

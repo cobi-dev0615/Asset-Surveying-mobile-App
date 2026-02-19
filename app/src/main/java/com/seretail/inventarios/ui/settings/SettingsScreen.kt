@@ -23,6 +23,8 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -71,6 +73,8 @@ import com.seretail.inventarios.ui.theme.TextSecondary
 fun SettingsScreen(
     onLoggedOut: () -> Unit,
     printerManager: BluetoothPrinterManager,
+    onProductCatalogClick: () -> Unit = {},
+    onAboutClick: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -293,6 +297,16 @@ fun SettingsScreen(
             SectionHeader("Catálogo de Productos")
 
             OutlinedButton(
+                onClick = onProductCatalogClick,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+            ) {
+                Icon(Icons.Default.Inventory2, contentDescription = null, tint = SERBlue, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Ver Catálogo de Productos", color = SERBlue)
+            }
+
+            OutlinedButton(
                 onClick = { catalogLauncher.launch("*/*") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp),
@@ -363,6 +377,17 @@ fun SettingsScreen(
                 Icon(Icons.Default.ExitToApp, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("Cerrar Sesión", fontWeight = FontWeight.SemiBold)
+            }
+
+            // About
+            OutlinedButton(
+                onClick = onAboutClick,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+            ) {
+                Icon(Icons.Default.Info, contentDescription = null, tint = TextMuted, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Acerca de", color = TextMuted)
             }
 
             // App version

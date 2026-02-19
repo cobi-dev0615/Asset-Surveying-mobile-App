@@ -57,7 +57,7 @@ import com.seretail.inventarios.ui.theme.TextSecondary
 
 @Composable
 fun ProfileScreen(
-    onBackClick: () -> Unit,
+    onBackClick: (() -> Unit)? = null,
     onLoggedOut: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {

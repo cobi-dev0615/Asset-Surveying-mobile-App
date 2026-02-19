@@ -42,6 +42,9 @@ interface RegistroDao {
     @Query("SELECT * FROM inventario_registros WHERE session_id = :sessionId ORDER BY id DESC")
     fun observeInventarioBySession(sessionId: Long): Flow<List<InventarioRegistroEntity>>
 
+    @Query("SELECT * FROM inventario_registros WHERE session_id = :sessionId ORDER BY id DESC")
+    suspend fun getInventarioBySession(sessionId: Long): List<InventarioRegistroEntity>
+
     @Query("SELECT COUNT(*) FROM inventario_registros WHERE session_id = :sessionId")
     suspend fun countInventarioBySession(sessionId: Long): Int
 
@@ -59,6 +62,9 @@ interface RegistroDao {
 
     @Query("DELETE FROM inventario_registros WHERE id = :id")
     suspend fun deleteInventario(id: Long)
+
+    @Query("SELECT * FROM inventario_registros WHERE codigo_barras LIKE '%' || :query || '%' OR descripcion LIKE '%' || :query || '%' ORDER BY id DESC")
+    suspend fun searchInventarioRegistros(query: String): List<InventarioRegistroEntity>
 
     // No Encontrados
     @Query("SELECT * FROM no_encontrados WHERE session_id = :sessionId ORDER BY id DESC")

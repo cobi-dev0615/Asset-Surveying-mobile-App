@@ -33,6 +33,9 @@ interface ProductoDao {
     @Query("SELECT * FROM productos WHERE empresa_id = :empresaId AND categoria = :category ORDER BY descripcion")
     suspend fun getByCategory(empresaId: Long, category: String): List<ProductoEntity>
 
+    @Query("SELECT * FROM productos WHERE empresa_id = :empresaId ORDER BY descripcion LIMIT :limit")
+    suspend fun getByEmpresaLimited(empresaId: Long, limit: Int): List<ProductoEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(productos: List<ProductoEntity>)
 

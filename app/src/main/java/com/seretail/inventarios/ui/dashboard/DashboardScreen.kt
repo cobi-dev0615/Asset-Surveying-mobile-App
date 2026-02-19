@@ -70,6 +70,7 @@ import com.seretail.inventarios.ui.theme.Warning
 fun DashboardScreen(
     onNavigateToInventario: () -> Unit = {},
     onNavigateToActivoFijo: () -> Unit = {},
+    onNavigateToRfid: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
@@ -170,6 +171,28 @@ fun DashboardScreen(
                     modifier = Modifier.weight(1f),
                     onClick = onNavigateToActivoFijo,
                 )
+            }
+
+            // RFID card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onNavigateToRfid),
+                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Default.Nfc, contentDescription = null, tint = Warning, modifier = Modifier.size(28.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("RFID", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                        Text("Lector de tags RFID", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                    }
+                    Icon(Icons.Default.ChevronRight, contentDescription = "Ir", tint = TextMuted, modifier = Modifier.size(20.dp))
+                }
             }
 
             // Pending sync

@@ -15,6 +15,9 @@ interface InventarioDao {
     @Query("SELECT * FROM inventarios WHERE empresa_id = :empresaId ORDER BY id DESC")
     fun observeByEmpresa(empresaId: Long): Flow<List<InventarioEntity>>
 
+    @Query("SELECT * FROM inventarios ORDER BY id DESC")
+    suspend fun getAll(): List<InventarioEntity>
+
     @Query("SELECT * FROM inventarios WHERE id = :id")
     suspend fun getById(id: Long): InventarioEntity?
 

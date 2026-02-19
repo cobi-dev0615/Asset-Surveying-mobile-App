@@ -16,10 +16,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Store
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -56,6 +59,8 @@ import com.seretail.inventarios.ui.theme.TextSecondary
 @Composable
 fun InventarioListScreen(
     onSessionClick: (Long) -> Unit,
+    onQueryClick: () -> Unit = {},
+    onReportsClick: () -> Unit = {},
     viewModel: InventarioListViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -69,7 +74,19 @@ fun InventarioListScreen(
     }
 
     Scaffold(
-        topBar = { SERTopBar(title = "Inventarios") },
+        topBar = {
+            SERTopBar(
+                title = "Inventarios",
+                actions = {
+                    IconButton(onClick = onQueryClick) {
+                        Icon(Icons.Default.Search, contentDescription = "Consulta", tint = TextMuted)
+                    }
+                    IconButton(onClick = onReportsClick) {
+                        Icon(Icons.Default.Assessment, contentDescription = "Reportes", tint = TextMuted)
+                    }
+                },
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { viewModel.showCreateDialog() },

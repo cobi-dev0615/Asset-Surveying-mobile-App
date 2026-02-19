@@ -25,15 +25,20 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.seretail.inventarios.data.local.entity.ActivoFijoRegistroEntity
+import com.seretail.inventarios.ui.about.AboutScreen
 import com.seretail.inventarios.ui.activofijo.ActivoFijoCaptureScreen
 import com.seretail.inventarios.ui.activofijo.ActivoFijoListScreen
 import com.seretail.inventarios.ui.activofijo.AssetCatalogScreen
 import com.seretail.inventarios.ui.activofijo.AssetSearchScreen
+import com.seretail.inventarios.ui.catalogo.NewProductScreen
+import com.seretail.inventarios.ui.catalogo.ProductCatalogScreen
 import com.seretail.inventarios.ui.components.SERBottomBar
 import com.seretail.inventarios.ui.crosscount.CrossCountScreen
 import com.seretail.inventarios.ui.dashboard.DashboardScreen
 import com.seretail.inventarios.ui.inventario.InventarioCaptureScreen
 import com.seretail.inventarios.ui.inventario.InventarioListScreen
+import com.seretail.inventarios.ui.inventario.InventarioQueryScreen
+import com.seretail.inventarios.ui.inventario.InventarioReportsScreen
 import com.seretail.inventarios.ui.login.LoginScreen
 import com.seretail.inventarios.ui.rfid.RfidCaptureScreen
 import com.seretail.inventarios.ui.scanner.BarcodeScannerScreen
@@ -59,6 +64,11 @@ object Routes {
     const val EMPRESA_SELECTION = "empresa_selection"
     const val ASSET_CATALOG = "asset_catalog/{sessionId}"
     const val ASSET_SEARCH = "asset_search/{sessionId}"
+    const val INVENTARIO_QUERY = "inventario_query"
+    const val INVENTARIO_REPORTS = "inventario_reports"
+    const val PRODUCT_CATALOG = "product_catalog"
+    const val NEW_PRODUCT = "new_product"
+    const val ABOUT = "about"
 
     fun inventarioCapture(sessionId: Long) = "inventario_capture/$sessionId"
     fun activoFijoCapture(sessionId: Long) = "activofijo_capture/$sessionId"
@@ -84,7 +94,6 @@ fun AppNavigation() {
 
     // 3-state auth: null = checking, true = logged in, false = logged out
     var authState by remember { mutableStateOf<Boolean?>(null) }
-    var needsEmpresaSelection by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         val token = preferencesManager.token.first()
@@ -95,9 +104,7 @@ fun AppNavigation() {
             // Stale token without user data — clear it
             preferencesManager.clearSession()
         }
-        val empresaId = preferencesManager.empresaId.first()
         authState = isLoggedIn
-        needsEmpresaSelection = isLoggedIn && empresaId == null
     }
 
     // Show loading while checking auth
@@ -115,8 +122,8 @@ fun AppNavigation() {
 
     val startDestination = when {
         authState != true -> Routes.LOGIN
-        needsEmpresaSelection -> Routes.EMPRESA_SELECTION
-        else -> Routes.DASHBOARD
+        // Always go through empresa selection — it auto-skips if already configured
+        else -> Routes.EMPRESA_SELECTION
     }
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -152,9 +159,9 @@ fun AppNavigation() {
                 LoginScreen(
                     onLoginSuccess = {
                         authState = true
-                        // Check if empresa is already selected
-                        val dest = if (needsEmpresaSelection) Routes.EMPRESA_SELECTION else Routes.DASHBOARD
-                        navController.navigate(dest) {
+                        // Always go to empresa selection after login
+                        // It will auto-skip if already configured
+                        navController.navigate(Routes.EMPRESA_SELECTION) {
                             popUpTo(Routes.LOGIN) { inclusive = true }
                         }
                     },
@@ -165,7 +172,6 @@ fun AppNavigation() {
             composable(Routes.EMPRESA_SELECTION) {
                 EmpresaSucursalSelectionScreen(
                     onSelectionComplete = {
-                        needsEmpresaSelection = false
                         navController.navigate(Routes.DASHBOARD) {
                             popUpTo(Routes.EMPRESA_SELECTION) { inclusive = true }
                         }
@@ -196,8 +202,15 @@ fun AppNavigation() {
                             restoreState = true
                         }
                     },
+                    onNavigateToRfid = {
+                        navController.navigate(Routes.RFID_CAPTURE)
+                    },
                     onProfileClick = {
-                        navController.navigate(Routes.PROFILE)
+                        navController.navigate(Routes.PROFILE) {
+                            popUpTo(Routes.DASHBOARD) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     },
                 )
             }
@@ -205,7 +218,6 @@ fun AppNavigation() {
             // Profile
             composable(Routes.PROFILE) {
                 ProfileScreen(
-                    onBackClick = { navController.popBackStack() },
                     onLoggedOut = {
                         authState = false
                         navController.navigate(Routes.LOGIN) {
@@ -220,6 +232,12 @@ fun AppNavigation() {
                 InventarioListScreen(
                     onSessionClick = { sessionId ->
                         navController.navigate(Routes.inventarioCapture(sessionId))
+                    },
+                    onQueryClick = {
+                        navController.navigate(Routes.INVENTARIO_QUERY)
+                    },
+                    onReportsClick = {
+                        navController.navigate(Routes.INVENTARIO_REPORTS)
                     },
                 )
             }
@@ -290,6 +308,9 @@ fun AppNavigation() {
                     onSearchClick = {
                         navController.navigate(Routes.assetSearch(sessionId))
                     },
+                    onRfidClick = {
+                        navController.navigate(Routes.RFID_CAPTURE)
+                    },
                     printerManager = printerManager,
                     viewModel = viewModel,
                 )
@@ -312,6 +333,12 @@ fun AppNavigation() {
                         }
                     },
                     printerManager = printerManager,
+                    onProductCatalogClick = {
+                        navController.navigate(Routes.PRODUCT_CATALOG)
+                    },
+                    onAboutClick = {
+                        navController.navigate(Routes.ABOUT)
+                    },
                 )
             }
 
@@ -367,6 +394,44 @@ fun AppNavigation() {
                 val sessionId = backStackEntry.arguments?.getLong("sessionId") ?: return@composable
                 AssetSearchScreen(
                     sessionId = sessionId,
+                    onBackClick = { navController.popBackStack() },
+                )
+            }
+
+            // Inventario Query/Search
+            composable(Routes.INVENTARIO_QUERY) {
+                InventarioQueryScreen(
+                    onBackClick = { navController.popBackStack() },
+                )
+            }
+
+            // Inventario Reports
+            composable(Routes.INVENTARIO_REPORTS) {
+                InventarioReportsScreen(
+                    onBackClick = { navController.popBackStack() },
+                )
+            }
+
+            // Product Catalog
+            composable(Routes.PRODUCT_CATALOG) {
+                ProductCatalogScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onNewProductClick = {
+                        navController.navigate(Routes.NEW_PRODUCT)
+                    },
+                )
+            }
+
+            // New Product
+            composable(Routes.NEW_PRODUCT) {
+                NewProductScreen(
+                    onBackClick = { navController.popBackStack() },
+                )
+            }
+
+            // About
+            composable(Routes.ABOUT) {
+                AboutScreen(
                     onBackClick = { navController.popBackStack() },
                 )
             }

@@ -45,7 +45,20 @@ class EmpresaSucursalSelectionViewModel @Inject constructor(
     val uiState: StateFlow<SelectionUiState> = _uiState
 
     init {
-        loadEmpresas()
+        checkExistingSelection()
+    }
+
+    private fun checkExistingSelection() {
+        viewModelScope.launch {
+            val empresaId = preferencesManager.empresaId.first()
+            val sucursalId = preferencesManager.sucursalId.first()
+            if (empresaId != null && sucursalId != null) {
+                // Already configured — skip straight to dashboard
+                _uiState.value = _uiState.value.copy(isLoading = false, selectionComplete = true)
+            } else {
+                loadEmpresas()
+            }
+        }
     }
 
     private fun loadEmpresas() {

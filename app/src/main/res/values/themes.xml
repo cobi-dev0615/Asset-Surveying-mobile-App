@@ -3,6 +3,6 @@
     <style name="Theme.SERInventarios" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowBackground">#FF0F172A</item>
+        <item name="android:windowBackground">#FFF8F9FA</item>
     </style>
 </resources>

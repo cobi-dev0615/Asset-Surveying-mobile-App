@@ -48,6 +48,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.seretail.inventarios.ui.components.BarChart
+import com.seretail.inventarios.ui.components.PieChart
 import com.seretail.inventarios.ui.components.SERTopBar
 import com.seretail.inventarios.ui.theme.DarkBackground
 import com.seretail.inventarios.ui.theme.DarkSurface
@@ -240,7 +242,82 @@ fun DashboardScreen(
                 MiniStatCard("Agregados", state.addedCount, StatusAdded, Modifier.weight(1f))
                 MiniStatCard("Traspasados", state.transferredCount, StatusTransferred, Modifier.weight(1f))
             }
+
+            // Charts section
+            if (state.progressSlices.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Avance General",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = TextSecondary,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        PieChart(
+                            slices = state.progressSlices,
+                            size = 90.dp,
+                            strokeWidth = 14.dp,
+                        )
+                        Spacer(Modifier.width(20.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            ChartLegendItem("Encontrados", state.foundCount, StatusFound)
+                            ChartLegendItem("No Encontrados", state.notFoundCount, StatusNotFound)
+                            ChartLegendItem("Agregados", state.addedCount, StatusAdded)
+                            ChartLegendItem("Traspasados", state.transferredCount, StatusTransferred)
+                        }
+                    }
+                }
+            }
+
+            if (state.categoryBars.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Activos por Categoria",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = TextSecondary,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    BarChart(
+                        data = state.categoryBars,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun ChartLegendItem(label: String, count: Int, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .background(color, RoundedCornerShape(2.dp)),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = "$label ($count)",
+            style = MaterialTheme.typography.labelSmall,
+            color = TextSecondary,
+        )
     }
 }
 

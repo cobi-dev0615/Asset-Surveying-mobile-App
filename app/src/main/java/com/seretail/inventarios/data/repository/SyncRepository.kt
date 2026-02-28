@@ -101,6 +101,12 @@ class SyncRepository @Inject constructor(
                         color = it.color,
                         serie = it.serie,
                         sucursalId = it.sucursalId,
+                        codigo2 = it.codigo2,
+                        codigo3 = it.codigo3,
+                        precioVenta = it.precioVenta,
+                        cantidadTeorica = it.cantidadTeorica,
+                        unidadMedida = it.unidadMedida,
+                        factor = it.factor,
                     )
                 }
                 productoDao.insertAll(productos)

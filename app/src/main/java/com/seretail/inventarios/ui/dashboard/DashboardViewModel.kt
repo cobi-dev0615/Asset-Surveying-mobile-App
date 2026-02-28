@@ -5,6 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.seretail.inventarios.data.local.dao.RegistroDao
 import com.seretail.inventarios.data.repository.AuthRepository
 import com.seretail.inventarios.data.repository.SyncRepository
+import com.seretail.inventarios.ui.components.PieSlice
+import com.seretail.inventarios.ui.theme.StatusAdded
+import com.seretail.inventarios.ui.theme.StatusFound
+import com.seretail.inventarios.ui.theme.StatusNotFound
+import com.seretail.inventarios.ui.theme.StatusTransferred
 import com.seretail.inventarios.util.NetworkMonitor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +31,8 @@ data class DashboardUiState(
     val syncMessage: String? = null,
     val userName: String? = null,
     val userRolId: Int? = null,
+    val progressSlices: List<PieSlice> = emptyList(),
+    val categoryBars: List<Pair<String, Int>> = emptyList(),
 )
 
 @HiltViewModel
@@ -55,6 +62,16 @@ class DashboardViewModel @Inject constructor(
             val transferred = registroDao.countActivoFijoTransferred()
             val pending = registroDao.countAllUnsynced()
 
+            val slices = listOf(
+                PieSlice(found.toFloat(), StatusFound),
+                PieSlice(notFound.toFloat(), StatusNotFound),
+                PieSlice(added.toFloat(), StatusAdded),
+                PieSlice(transferred.toFloat(), StatusTransferred),
+            ).filter { it.value > 0f }
+
+            val categoryCounts = registroDao.getActivoFijoCategoryCounts()
+            val bars = categoryCounts.map { it.categoria to it.cnt }
+
             _uiState.value = _uiState.value.copy(
                 inventarioCount = invCount,
                 activoFijoCount = afCount,
@@ -63,6 +80,8 @@ class DashboardViewModel @Inject constructor(
                 addedCount = added,
                 transferredCount = transferred,
                 pendingSyncCount = pending,
+                progressSlices = slices,
+                categoryBars = bars,
             )
         }
     }

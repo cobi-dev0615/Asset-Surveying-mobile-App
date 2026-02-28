@@ -3,20 +3,24 @@ package com.seretail.inventarios.ui.inventario
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seretail.inventarios.data.local.dao.InventarioDao
+import com.seretail.inventarios.data.local.dao.ProductoDao
 import com.seretail.inventarios.data.local.dao.RegistroDao
 import com.seretail.inventarios.data.local.entity.InventarioEntity
 import com.seretail.inventarios.data.local.entity.InventarioRegistroEntity
+import com.seretail.inventarios.util.PreferencesManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 enum class ReportType(val label: String) {
     BY_PRODUCT("Conteo agrupado por producto"),
     BY_PRODUCT_LOCATION("Conteo por producto y ubicación"),
+    DIFFERENCES("Diferencias (teórico vs real)"),
     DETAILED("Conteo a detalle"),
-    SUMMARY("Resumen general"),
+    CROSS_COUNT("Conteo cruzado"),
 }
 
 data class GroupedReport(
@@ -25,6 +29,12 @@ data class GroupedReport(
     val ubicacion: String?,
     val totalCantidad: Int,
     val registroCount: Int,
+    val cantidadTeorica: Double? = null,
+    val diferencia: Double? = null,
+    val precioVenta: Double? = null,
+    val importeReal: Double? = null,
+    val importeTeorico: Double? = null,
+    val importeDiferencia: Double? = null,
 )
 
 data class InventarioReportsUiState(
@@ -37,12 +47,19 @@ data class InventarioReportsUiState(
     val totalQuantity: Int = 0,
     val totalRegistros: Int = 0,
     val totalLocations: Int = 0,
+    val totalTeorico: Double = 0.0,
+    val totalDiferencia: Double = 0.0,
+    val totalImporteReal: Double = 0.0,
+    val totalImporteTeorico: Double = 0.0,
+    val showExportDialog: Boolean = false,
 )
 
 @HiltViewModel
 class InventarioReportsViewModel @Inject constructor(
     private val inventarioDao: InventarioDao,
     private val registroDao: RegistroDao,
+    private val productoDao: ProductoDao,
+    private val preferencesManager: PreferencesManager,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(InventarioReportsUiState())
@@ -72,18 +89,31 @@ class InventarioReportsViewModel @Inject constructor(
     }
 
     fun selectReportType(type: ReportType) {
-        _uiState.value = _uiState.value.copy(reportType = type)
-        generateReport()
+        _uiState.value = _uiState.value.copy(reportType = type, isLoading = true)
+        viewModelScope.launch {
+            generateReport()
+            _uiState.value = _uiState.value.copy(isLoading = false)
+        }
     }
 
-    private fun generateReport() {
+    fun toggleExportDialog() {
+        _uiState.value = _uiState.value.copy(showExportDialog = !_uiState.value.showExportDialog)
+    }
+
+    private suspend fun generateReport() {
         val registros = _uiState.value.registros
         val totalQty = registros.sumOf { it.cantidad }
         val totalLocations = registros.mapNotNull { it.ubicacion }.distinct().size
 
-        val grouped = when (_uiState.value.reportType) {
+        val grouped: List<GroupedReport>
+        var totalTeorico = 0.0
+        var totalDiferencia = 0.0
+        var totalImporteReal = 0.0
+        var totalImporteTeorico = 0.0
+
+        when (_uiState.value.reportType) {
             ReportType.BY_PRODUCT -> {
-                registros.groupBy { it.codigoBarras }.map { (code, items) ->
+                grouped = registros.groupBy { it.codigoBarras }.map { (code, items) ->
                     GroupedReport(
                         codigoBarras = code,
                         descripcion = items.first().descripcion,
@@ -94,7 +124,7 @@ class InventarioReportsViewModel @Inject constructor(
                 }
             }
             ReportType.BY_PRODUCT_LOCATION -> {
-                registros.groupBy { "${it.codigoBarras}|${it.ubicacion ?: ""}" }.map { (_, items) ->
+                grouped = registros.groupBy { "${it.codigoBarras}|${it.ubicacion ?: ""}" }.map { (_, items) ->
                     GroupedReport(
                         codigoBarras = items.first().codigoBarras,
                         descripcion = items.first().descripcion,
@@ -104,8 +134,51 @@ class InventarioReportsViewModel @Inject constructor(
                     )
                 }
             }
+            ReportType.DIFFERENCES -> {
+                val empresaId = preferencesManager.empresaId.first()
+                val productos = if (empresaId > 0) {
+                    productoDao.getAllByEmpresa(empresaId)
+                } else {
+                    emptyList()
+                }
+
+                val registrosByCode = registros.groupBy { it.codigoBarras }
+
+                grouped = productos.mapNotNull { producto ->
+                    val items = registrosByCode[producto.codigoBarras]
+                    val cantidadReal = items?.sumOf { it.cantidad } ?: 0
+                    val cantidadTeorica = producto.cantidadTeorica ?: 0.0
+                    val precio = producto.precioVenta ?: 0.0
+                    val diff = cantidadReal - cantidadTeorica
+                    val importeReal = cantidadReal * precio
+                    val importeTeorico = cantidadTeorica * precio
+
+                    if (cantidadReal > 0 || cantidadTeorica > 0) {
+                        totalTeorico += cantidadTeorica
+                        totalDiferencia += diff
+                        totalImporteReal += importeReal
+                        totalImporteTeorico += importeTeorico
+
+                        GroupedReport(
+                            codigoBarras = producto.codigoBarras,
+                            descripcion = producto.descripcion,
+                            ubicacion = null,
+                            totalCantidad = cantidadReal,
+                            registroCount = items?.size ?: 0,
+                            cantidadTeorica = cantidadTeorica,
+                            diferencia = diff,
+                            precioVenta = precio,
+                            importeReal = importeReal,
+                            importeTeorico = importeTeorico,
+                            importeDiferencia = importeReal - importeTeorico,
+                        )
+                    } else {
+                        null
+                    }
+                }.sortedBy { it.diferencia }
+            }
             ReportType.DETAILED -> {
-                registros.map {
+                grouped = registros.map {
                     GroupedReport(
                         codigoBarras = it.codigoBarras,
                         descripcion = it.descripcion,
@@ -115,12 +188,12 @@ class InventarioReportsViewModel @Inject constructor(
                     )
                 }
             }
-            ReportType.SUMMARY -> {
-                registros.groupBy { it.codigoBarras }.map { (code, items) ->
+            ReportType.CROSS_COUNT -> {
+                grouped = registros.groupBy { "${it.codigoBarras}|${it.ubicacion ?: ""}" }.map { (_, items) ->
                     GroupedReport(
-                        codigoBarras = code,
+                        codigoBarras = items.first().codigoBarras,
                         descripcion = items.first().descripcion,
-                        ubicacion = null,
+                        ubicacion = items.first().ubicacion,
                         totalCantidad = items.sumOf { it.cantidad },
                         registroCount = items.size,
                     )
@@ -133,6 +206,10 @@ class InventarioReportsViewModel @Inject constructor(
             totalQuantity = totalQty,
             totalRegistros = registros.size,
             totalLocations = totalLocations,
+            totalTeorico = totalTeorico,
+            totalDiferencia = totalDiferencia,
+            totalImporteReal = totalImporteReal,
+            totalImporteTeorico = totalImporteTeorico,
         )
     }
 }

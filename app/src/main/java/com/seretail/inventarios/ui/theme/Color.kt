@@ -7,16 +7,16 @@ val SERBlue = Color(0xFF0D6EFD)
 val SERBlueDark = Color(0xFF0A58CA)
 val SERBlueLight = Color(0xFF3D8BFD)
 
-// Background / Surface (dark theme)
-val DarkBackground = Color(0xFF0F172A)
-val DarkSurface = Color(0xFF1E293B)
-val DarkSurfaceVariant = Color(0xFF334155)
-val DarkBorder = Color(0xFF475569)
+// Background / Surface (light theme)
+val DarkBackground = Color(0xFFF8F9FA)      // Light gray-white background
+val DarkSurface = Color(0xFFFFFFFF)         // White surface
+val DarkSurfaceVariant = Color(0xFFF1F5F9)  // Slightly gray variant
+val DarkBorder = Color(0xFFE2E8F0)          // Light border
 
-// Text
-val TextPrimary = Color(0xFFE2E8F0)
-val TextSecondary = Color(0xFF94A3B8)
-val TextMuted = Color(0xFF64748B)
+// Text (dark on light)
+val TextPrimary = Color(0xFF1E293B)
+val TextSecondary = Color(0xFF64748B)
+val TextMuted = Color(0xFF94A3B8)
 
 // Status Colors
 val StatusFound = Color(0xFF10B981)       // Green - Encontrado

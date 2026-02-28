@@ -54,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.seretail.inventarios.BuildConfig
 import com.seretail.inventarios.printing.BluetoothPrinterManager
 import com.seretail.inventarios.printing.PrinterState
 import com.seretail.inventarios.ui.components.SERTextField
@@ -74,6 +75,7 @@ fun SettingsScreen(
     onLoggedOut: () -> Unit,
     printerManager: BluetoothPrinterManager,
     onProductCatalogClick: () -> Unit = {},
+    onCatalogImportClick: () -> Unit = {},
     onAboutClick: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
@@ -316,6 +318,16 @@ fun SettingsScreen(
                 Text("Importar Catálogo (CSV/Excel)", color = SERBlue)
             }
 
+            OutlinedButton(
+                onClick = onCatalogImportClick,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+            ) {
+                Icon(Icons.Default.CloudSync, contentDescription = null, tint = SERBlue, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Descargar del Servidor", color = SERBlue)
+            }
+
             // Capture Options
             SectionHeader("Opciones de Captura")
 
@@ -392,7 +404,7 @@ fun SettingsScreen(
 
             // App version
             Text(
-                text = "v1.0.0 — SER Inventarios",
+                text = "v${BuildConfig.VERSION_NAME} — SER Inventarios",
                 style = MaterialTheme.typography.labelSmall,
                 color = TextMuted,
                 modifier = Modifier.padding(top = 8.dp).align(Alignment.CenterHorizontally),

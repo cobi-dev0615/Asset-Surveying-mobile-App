@@ -108,4 +108,12 @@ interface RegistroDao {
 
     @Query("SELECT COUNT(*) FROM activo_fijo_registros WHERE status_id = 4")
     suspend fun countActivoFijoTransferred(): Int
+
+    @Query("SELECT categoria, COUNT(*) as cnt FROM activo_fijo_registros WHERE categoria IS NOT NULL AND categoria != '' GROUP BY categoria ORDER BY cnt DESC LIMIT 8")
+    suspend fun getActivoFijoCategoryCounts(): List<CategoryCount>
 }
+
+data class CategoryCount(
+    val categoria: String,
+    val cnt: Int,
+)

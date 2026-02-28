@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Search
@@ -57,6 +58,7 @@ import com.seretail.inventarios.ui.theme.TextSecondary
 fun ProductCatalogScreen(
     onBackClick: () -> Unit,
     onNewProductClick: () -> Unit = {},
+    onEditProductClick: (Long) -> Unit = {},
     viewModel: ProductCatalogViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -256,7 +258,10 @@ fun ProductCatalogScreen(
                     contentPadding = PaddingValues(bottom = 16.dp),
                 ) {
                     items(state.products, key = { it.id }) { product ->
-                        ProductCard(product = product)
+                        ProductCard(
+                            product = product,
+                            onClick = { onEditProductClick(product.id) },
+                        )
                     }
                 }
             }
@@ -265,9 +270,14 @@ fun ProductCatalogScreen(
 }
 
 @Composable
-private fun ProductCard(product: com.seretail.inventarios.data.local.entity.ProductoEntity) {
+private fun ProductCard(
+    product: com.seretail.inventarios.data.local.entity.ProductoEntity,
+    onClick: () -> Unit = {},
+) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = DarkSurface),
         shape = RoundedCornerShape(8.dp),
     ) {

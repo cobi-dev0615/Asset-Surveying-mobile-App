@@ -30,7 +30,9 @@ import com.seretail.inventarios.ui.activofijo.ActivoFijoCaptureScreen
 import com.seretail.inventarios.ui.activofijo.ActivoFijoListScreen
 import com.seretail.inventarios.ui.activofijo.AssetCatalogScreen
 import com.seretail.inventarios.ui.activofijo.AssetSearchScreen
+import com.seretail.inventarios.ui.catalogo.CatalogImportScreen
 import com.seretail.inventarios.ui.catalogo.NewProductScreen
+import com.seretail.inventarios.ui.catalogo.NewProductViewModel
 import com.seretail.inventarios.ui.catalogo.ProductCatalogScreen
 import com.seretail.inventarios.ui.components.SERBottomBar
 import com.seretail.inventarios.ui.crosscount.CrossCountScreen
@@ -67,7 +69,8 @@ object Routes {
     const val INVENTARIO_QUERY = "inventario_query"
     const val INVENTARIO_REPORTS = "inventario_reports"
     const val PRODUCT_CATALOG = "product_catalog"
-    const val NEW_PRODUCT = "new_product"
+    const val NEW_PRODUCT = "new_product?productId={productId}"
+    const val CATALOG_IMPORT = "catalog_import"
     const val ABOUT = "about"
 
     fun inventarioCapture(sessionId: Long) = "inventario_capture/$sessionId"
@@ -76,6 +79,9 @@ object Routes {
     fun crosscount(s1: Long, s2: Long) = "crosscount/$s1/$s2"
     fun assetCatalog(sessionId: Long) = "asset_catalog/$sessionId"
     fun assetSearch(sessionId: Long) = "asset_search/$sessionId"
+    fun newProduct(productId: Long? = null): String {
+        return if (productId != null) "new_product?productId=$productId" else "new_product"
+    }
 }
 
 private val bottomBarRoutes = setOf(
@@ -336,6 +342,9 @@ fun AppNavigation() {
                     onProductCatalogClick = {
                         navController.navigate(Routes.PRODUCT_CATALOG)
                     },
+                    onCatalogImportClick = {
+                        navController.navigate(Routes.CATALOG_IMPORT)
+                    },
                     onAboutClick = {
                         navController.navigate(Routes.ABOUT)
                     },
@@ -417,14 +426,47 @@ fun AppNavigation() {
                 ProductCatalogScreen(
                     onBackClick = { navController.popBackStack() },
                     onNewProductClick = {
-                        navController.navigate(Routes.NEW_PRODUCT)
+                        navController.navigate(Routes.newProduct())
+                    },
+                    onEditProductClick = { productId ->
+                        navController.navigate(Routes.newProduct(productId))
                     },
                 )
             }
 
-            // New Product
-            composable(Routes.NEW_PRODUCT) {
+            // New / Edit Product
+            composable(
+                route = Routes.NEW_PRODUCT,
+                arguments = listOf(
+                    navArgument("productId") {
+                        type = NavType.LongType
+                        defaultValue = 0L
+                    },
+                ),
+            ) { backStackEntry ->
+                val scannedBarcode = backStackEntry.savedStateHandle.get<String>("scanned_barcode")
+                val viewModel = hiltViewModel<NewProductViewModel>()
+
+                LaunchedEffect(scannedBarcode) {
+                    scannedBarcode?.let {
+                        viewModel.onBarcodeScanned(it)
+                        backStackEntry.savedStateHandle.remove<String>("scanned_barcode")
+                    }
+                }
+
                 NewProductScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onScanBarcode = {
+                        val productId = backStackEntry.arguments?.getLong("productId") ?: 0L
+                        navController.navigate(Routes.scanner("new_product?productId=$productId"))
+                    },
+                    viewModel = viewModel,
+                )
+            }
+
+            // Catalog Import
+            composable(Routes.CATALOG_IMPORT) {
+                CatalogImportScreen(
                     onBackClick = { navController.popBackStack() },
                 )
             }

@@ -20,4 +20,15 @@ data class ProductoEntity(
     val serie: String? = null,
     @ColumnInfo(name = "sucursal_id")
     val sucursalId: Long? = null,
+    @ColumnInfo(name = "codigo_2")
+    val codigo2: String? = null,
+    @ColumnInfo(name = "codigo_3")
+    val codigo3: String? = null,
+    @ColumnInfo(name = "precio_venta")
+    val precioVenta: Double? = null,
+    @ColumnInfo(name = "cantidad_teorica")
+    val cantidadTeorica: Double? = null,
+    @ColumnInfo(name = "unidad_medida")
+    val unidadMedida: String? = null,
+    val factor: Double? = null,
 )

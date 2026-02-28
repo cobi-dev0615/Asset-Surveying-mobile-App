@@ -36,6 +36,23 @@ interface ProductoDao {
     @Query("SELECT * FROM productos WHERE empresa_id = :empresaId ORDER BY descripcion LIMIT :limit")
     suspend fun getByEmpresaLimited(empresaId: Long, limit: Int): List<ProductoEntity>
 
+    @Query("""
+        SELECT COUNT(*) FROM productos
+        WHERE empresa_id = :empresaId
+        AND (codigo_barras = :code OR codigo_2 = :code OR codigo_3 = :code)
+        AND id != :excludeId
+    """)
+    suspend fun countDuplicateCode(empresaId: Long, code: String, excludeId: Long = 0): Int
+
+    @Query("SELECT * FROM productos WHERE empresa_id = :empresaId")
+    suspend fun getAllByEmpresa(empresaId: Long): List<ProductoEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(producto: ProductoEntity): Long
+
+    @Query("UPDATE productos SET codigo_barras = :codigoBarras, codigo_2 = :codigo2, codigo_3 = :codigo3, descripcion = :descripcion, categoria = :categoria, marca = :marca, modelo = :modelo, color = :color, serie = :serie, unidad_medida = :unidadMedida, precio_venta = :precioVenta, cantidad_teorica = :cantidadTeorica, factor = :factor WHERE id = :id")
+    suspend fun update(id: Long, codigoBarras: String, codigo2: String?, codigo3: String?, descripcion: String, categoria: String?, marca: String?, modelo: String?, color: String?, serie: String?, unidadMedida: String?, precioVenta: Double?, cantidadTeorica: Double?, factor: Double?)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(productos: List<ProductoEntity>)
 

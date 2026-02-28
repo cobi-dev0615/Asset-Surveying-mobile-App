@@ -22,6 +22,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.seretail.inventarios.BuildConfig
 import com.seretail.inventarios.R
 import com.seretail.inventarios.ui.components.SERTopBar
 import com.seretail.inventarios.ui.theme.DarkBackground
@@ -76,7 +77,7 @@ fun AboutScreen(
 
             // Version
             Text(
-                text = "Version 1.0.0",
+                text = "Version ${BuildConfig.VERSION_NAME}",
                 style = MaterialTheme.typography.bodySmall,
                 color = TextSecondary,
             )

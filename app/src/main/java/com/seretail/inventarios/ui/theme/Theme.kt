@@ -1,18 +1,19 @@
 package com.seretail.inventarios.ui.theme
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 
-private val SERDarkColorScheme = darkColorScheme(
+private val SERLightColorScheme = lightColorScheme(
     primary = SERBlue,
-    onPrimary = TextPrimary,
-    primaryContainer = SERBlueDark,
-    onPrimaryContainer = TextPrimary,
+    onPrimary = Color.White,
+    primaryContainer = SERBlueLight,
+    onPrimaryContainer = Color.White,
     secondary = StatusFound,
-    onSecondary = TextPrimary,
+    onSecondary = Color.White,
     tertiary = StatusTransferred,
-    onTertiary = TextPrimary,
+    onTertiary = Color.White,
     background = DarkBackground,
     onBackground = TextPrimary,
     surface = DarkSurface,
@@ -21,15 +22,15 @@ private val SERDarkColorScheme = darkColorScheme(
     onSurfaceVariant = TextSecondary,
     outline = DarkBorder,
     error = Error,
-    onError = TextPrimary,
-    inverseSurface = DarkSurfaceVariant,
-    inverseOnSurface = TextPrimary,
+    onError = Color.White,
+    inverseSurface = TextPrimary,
+    inverseOnSurface = DarkSurface,
 )
 
 @Composable
 fun SERTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = SERDarkColorScheme,
+        colorScheme = SERLightColorScheme,
         typography = SERTypography,
         content = content,
     )

@@ -135,8 +135,8 @@ class InventarioReportsViewModel @Inject constructor(
                 }
             }
             ReportType.DIFFERENCES -> {
-                val empresaId = preferencesManager.empresaId.first()
-                val productos = if (empresaId > 0) {
+                val empresaId = preferencesManager.empresaId.first() ?: 0L
+                val productos = if (empresaId > 0L) {
                     productoDao.getAllByEmpresa(empresaId)
                 } else {
                     emptyList()

@@ -74,18 +74,6 @@ fun ActivoFijoListScreen(
         }
     }
 
-    // Auto-resume last active session on first load
-    var hasAutoResumed by remember { mutableStateOf(false) }
-    LaunchedEffect(state.lastActiveSessionId, state.sessions) {
-        if (!hasAutoResumed && state.lastActiveSessionId != null && state.sessions.isNotEmpty()) {
-            val sessionExists = state.sessions.any { it.id == state.lastActiveSessionId }
-            if (sessionExists) {
-                hasAutoResumed = true
-                onSessionClick(state.lastActiveSessionId!!)
-            }
-        }
-    }
-
     Scaffold(
         topBar = {
             SERTopBar(

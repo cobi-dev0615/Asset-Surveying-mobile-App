@@ -6,4 +6,5 @@ import com.squareup.moshi.JsonClass
 data class LoginRequest(
     val usuario: String,
     val password: String,
+    val device_name: String = "android",
 )

@@ -28,13 +28,21 @@ class AuthRepository @Inject constructor(
                 preferencesManager.saveUserId(body.user.id)
 
                 val empresaIds = body.user.empresas?.map { it.id } ?: emptyList()
+                // Map role slug to role ID
+                val rolId = when (body.user.rol) {
+                    "super_admin" -> 1
+                    "supervisor" -> 2
+                    "capturista" -> 3
+                    "supervisor_invitado" -> 4
+                    else -> 3
+                }
                 val userEntity = UserEntity(
                     id = body.user.id,
                     usuario = body.user.usuario,
                     nombres = body.user.nombres,
                     email = body.user.email,
-                    rolId = body.user.rolId,
-                    rolNombre = body.user.rol?.nombre,
+                    rolId = rolId,
+                    rolNombre = body.user.rolNombre,
                     empresaIds = empresaIds.joinToString(","),
                     accesoApp = true,
                 )
@@ -45,6 +53,7 @@ class AuthRepository @Inject constructor(
                 val errorMsg = when (response.code()) {
                     401 -> "Usuario o contraseña incorrectos"
                     403 -> "No tienes acceso a la aplicación"
+                    422 -> "Error de validación"
                     else -> "Error del servidor (${response.code()})"
                 }
                 Result.failure(Exception(errorMsg))

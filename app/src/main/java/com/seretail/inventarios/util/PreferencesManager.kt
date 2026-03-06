@@ -49,6 +49,9 @@ class PreferencesManager @Inject constructor(
         private val KEY_CAPTURE_ZEROS = booleanPreferencesKey("capture_zeros")
         private val KEY_CAPTURE_GPS = booleanPreferencesKey("capture_gps")
         private val KEY_CONTEO_UNIDAD = booleanPreferencesKey("conteo_unidad")
+        // Active session tracking
+        private val KEY_ACTIVE_INVENTARIO_SESSION_ID = longPreferencesKey("active_inventario_session_id")
+        private val KEY_ACTIVE_ACTIVO_FIJO_SESSION_ID = longPreferencesKey("active_activo_fijo_session_id")
     }
 
     val token: Flow<String?> = dataStore.data.map { it[KEY_TOKEN] }
@@ -75,6 +78,9 @@ class PreferencesManager @Inject constructor(
     val captureZeros: Flow<Boolean> = dataStore.data.map { it[KEY_CAPTURE_ZEROS] ?: false }
     val captureGps: Flow<Boolean> = dataStore.data.map { it[KEY_CAPTURE_GPS] ?: false }
     val conteoUnidad: Flow<Boolean> = dataStore.data.map { it[KEY_CONTEO_UNIDAD] ?: true }
+    // Active session tracking
+    val activeInventarioSessionId: Flow<Long?> = dataStore.data.map { it[KEY_ACTIVE_INVENTARIO_SESSION_ID] }
+    val activeActivoFijoSessionId: Flow<Long?> = dataStore.data.map { it[KEY_ACTIVE_ACTIVO_FIJO_SESSION_ID] }
 
     suspend fun saveToken(token: String) {
         dataStore.edit { it[KEY_TOKEN] = token }
@@ -137,6 +143,23 @@ class PreferencesManager @Inject constructor(
     suspend fun saveCaptureGps(v: Boolean) { dataStore.edit { it[KEY_CAPTURE_GPS] = v } }
     suspend fun saveConteoUnidad(v: Boolean) { dataStore.edit { it[KEY_CONTEO_UNIDAD] = v } }
 
+    // Active session persistence
+    suspend fun saveActiveInventarioSession(sessionId: Long) {
+        dataStore.edit { it[KEY_ACTIVE_INVENTARIO_SESSION_ID] = sessionId }
+    }
+
+    suspend fun saveActiveActivoFijoSession(sessionId: Long) {
+        dataStore.edit { it[KEY_ACTIVE_ACTIVO_FIJO_SESSION_ID] = sessionId }
+    }
+
+    suspend fun clearActiveInventarioSession() {
+        dataStore.edit { it.remove(KEY_ACTIVE_INVENTARIO_SESSION_ID) }
+    }
+
+    suspend fun clearActiveActivoFijoSession() {
+        dataStore.edit { it.remove(KEY_ACTIVE_ACTIVO_FIJO_SESSION_ID) }
+    }
+
     suspend fun clearSession() {
         dataStore.edit {
             it.remove(KEY_TOKEN)
@@ -145,6 +168,8 @@ class PreferencesManager @Inject constructor(
             it.remove(KEY_EMPRESA_NOMBRE)
             it.remove(KEY_SUCURSAL_ID)
             it.remove(KEY_SUCURSAL_NOMBRE)
+            it.remove(KEY_ACTIVE_INVENTARIO_SESSION_ID)
+            it.remove(KEY_ACTIVE_ACTIVO_FIJO_SESSION_ID)
         }
     }
 }

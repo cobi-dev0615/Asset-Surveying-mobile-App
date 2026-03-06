@@ -13,6 +13,7 @@ import com.seretail.inventarios.data.repository.AuthRepository
 import com.seretail.inventarios.util.FeedbackManager
 import com.seretail.inventarios.util.HardwareScannerBus
 import com.seretail.inventarios.util.LocationHelper
+import com.seretail.inventarios.util.PreferencesManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -69,6 +70,7 @@ class ActivoFijoCaptureViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val registroDao: RegistroDao,
     private val feedbackManager: FeedbackManager,
+    private val preferencesManager: PreferencesManager,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -87,6 +89,7 @@ class ActivoFijoCaptureViewModel @Inject constructor(
         viewModelScope.launch {
             val session = activoFijoRepository.getSession(sessionId)
             _uiState.value = _uiState.value.copy(session = session, isLoading = false)
+            preferencesManager.saveActiveActivoFijoSession(sessionId)
         }
         viewModelScope.launch {
             activoFijoRepository.observeRegistros(sessionId).collect { registros ->

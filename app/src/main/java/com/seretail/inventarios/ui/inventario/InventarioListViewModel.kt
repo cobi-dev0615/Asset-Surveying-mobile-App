@@ -19,6 +19,7 @@ data class InventarioListUiState(
     val isCreating: Boolean = false,
     val createdSessionId: Long? = null,
     val error: String? = null,
+    val lastActiveSessionId: Long? = null,
 )
 
 @HiltViewModel
@@ -31,6 +32,10 @@ class InventarioListViewModel @Inject constructor(
     val uiState: StateFlow<InventarioListUiState> = _uiState
 
     init {
+        viewModelScope.launch {
+            val lastSessionId = preferencesManager.activeInventarioSessionId.first()
+            _uiState.value = _uiState.value.copy(lastActiveSessionId = lastSessionId)
+        }
         viewModelScope.launch {
             inventarioRepository.observeSessions().collect { sessions ->
                 _uiState.value = _uiState.value.copy(sessions = sessions, isLoading = false)

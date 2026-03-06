@@ -89,6 +89,7 @@ class InventarioCaptureViewModel @Inject constructor(
         viewModelScope.launch {
             val session = inventarioRepository.getSession(sessionId)
             _uiState.value = _uiState.value.copy(session = session, isLoading = false)
+            preferencesManager.saveActiveInventarioSession(sessionId)
         }
         viewModelScope.launch {
             inventarioRepository.observeRegistros(sessionId).collect { registros ->

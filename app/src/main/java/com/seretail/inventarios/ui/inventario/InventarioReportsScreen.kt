@@ -3,6 +3,7 @@ package com.seretail.inventarios.ui.inventario
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,12 +20,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -384,6 +388,63 @@ fun InventarioReportsScreen(
                 color = TextSecondary,
                 modifier = Modifier.padding(vertical = 4.dp),
             )
+
+            // Sort controls
+            if (state.groupedData.isNotEmpty()) {
+                val sortColumns = when (state.reportType) {
+                    ReportType.DIFFERENCES -> listOf(
+                        SortColumn.CODE, SortColumn.DESCRIPTION,
+                        SortColumn.QUANTITY, SortColumn.TEORICO, SortColumn.DIFERENCIA,
+                    )
+                    ReportType.BY_PRODUCT_LOCATION, ReportType.CROSS_COUNT -> listOf(
+                        SortColumn.CODE, SortColumn.DESCRIPTION,
+                        SortColumn.LOCATION, SortColumn.QUANTITY, SortColumn.REGISTROS,
+                    )
+                    ReportType.DETAILED -> listOf(
+                        SortColumn.CODE, SortColumn.DESCRIPTION,
+                        SortColumn.LOCATION, SortColumn.QUANTITY,
+                    )
+                    ReportType.BY_PRODUCT -> listOf(
+                        SortColumn.CODE, SortColumn.DESCRIPTION,
+                        SortColumn.QUANTITY, SortColumn.REGISTROS,
+                    )
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    sortColumns.forEach { column ->
+                        val isActive = state.sortColumn == column
+                        Row(
+                            modifier = Modifier
+                                .clickable { viewModel.toggleSort(column) }
+                                .padding(horizontal = 6.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = column.label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isActive) SERBlue else TextMuted,
+                                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+                                fontSize = 10.sp,
+                            )
+                            Icon(
+                                imageVector = when {
+                                    !isActive -> Icons.Default.SwapVert
+                                    state.sortDirection == SortDirection.ASC -> Icons.Default.ArrowUpward
+                                    else -> Icons.Default.ArrowDownward
+                                },
+                                contentDescription = null,
+                                tint = if (isActive) SERBlue else TextMuted,
+                                modifier = Modifier.size(12.dp),
+                            )
+                        }
+                    }
+                }
+            }
 
             // Loading indicator for session switch
             if (state.isLoading) {

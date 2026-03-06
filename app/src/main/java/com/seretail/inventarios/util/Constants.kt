@@ -2,7 +2,7 @@ package com.seretail.inventarios.util
 
 object Constants {
     const val DATABASE_NAME = "ser_inventarios_db"
-    const val DEFAULT_SERVER_URL = "https://app.seretail.com.mx/api/"
+    const val DEFAULT_SERVER_URL = "https://app-test.seretail.com.mx/api/"
 
     // DataStore keys
     const val PREFERENCES_NAME = "ser_preferences"

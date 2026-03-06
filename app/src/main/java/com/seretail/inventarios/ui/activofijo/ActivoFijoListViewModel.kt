@@ -21,6 +21,7 @@ data class ActivoFijoListUiState(
     val error: String? = null,
     val compareMode: Boolean = false,
     val selectedForCompare: Set<Long> = emptySet(),
+    val lastActiveSessionId: Long? = null,
 )
 
 @HiltViewModel
@@ -33,6 +34,10 @@ class ActivoFijoListViewModel @Inject constructor(
     val uiState: StateFlow<ActivoFijoListUiState> = _uiState
 
     init {
+        viewModelScope.launch {
+            val lastSessionId = preferencesManager.activeActivoFijoSessionId.first()
+            _uiState.value = _uiState.value.copy(lastActiveSessionId = lastSessionId)
+        }
         viewModelScope.launch {
             activoFijoRepository.observeSessions().collect { sessions ->
                 _uiState.value = _uiState.value.copy(sessions = sessions, isLoading = false)

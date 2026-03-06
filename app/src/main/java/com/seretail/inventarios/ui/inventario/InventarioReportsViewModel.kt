@@ -23,6 +23,18 @@ enum class ReportType(val label: String) {
     CROSS_COUNT("Conteo cruzado"),
 }
 
+enum class SortColumn(val label: String) {
+    CODE("Código"),
+    DESCRIPTION("Descripción"),
+    QUANTITY("Cantidad"),
+    REGISTROS("Registros"),
+    LOCATION("Ubicación"),
+    TEORICO("Teórico"),
+    DIFERENCIA("Diferencia"),
+}
+
+enum class SortDirection { ASC, DESC }
+
 data class GroupedReport(
     val codigoBarras: String,
     val descripcion: String?,
@@ -52,6 +64,8 @@ data class InventarioReportsUiState(
     val totalImporteReal: Double = 0.0,
     val totalImporteTeorico: Double = 0.0,
     val showExportDialog: Boolean = false,
+    val sortColumn: SortColumn = SortColumn.CODE,
+    val sortDirection: SortDirection = SortDirection.ASC,
 )
 
 @HiltViewModel
@@ -98,6 +112,38 @@ class InventarioReportsViewModel @Inject constructor(
 
     fun toggleExportDialog() {
         _uiState.value = _uiState.value.copy(showExportDialog = !_uiState.value.showExportDialog)
+    }
+
+    fun toggleSort(column: SortColumn) {
+        val current = _uiState.value
+        val newDirection = if (current.sortColumn == column) {
+            if (current.sortDirection == SortDirection.ASC) SortDirection.DESC else SortDirection.ASC
+        } else {
+            SortDirection.ASC
+        }
+        _uiState.value = current.copy(
+            sortColumn = column,
+            sortDirection = newDirection,
+            groupedData = applySorting(current.groupedData, column, newDirection),
+        )
+    }
+
+    private fun applySorting(
+        data: List<GroupedReport>,
+        column: SortColumn,
+        direction: SortDirection,
+    ): List<GroupedReport> {
+        val comparator: Comparator<GroupedReport> = when (column) {
+            SortColumn.CODE -> compareBy { it.codigoBarras }
+            SortColumn.DESCRIPTION -> compareBy(String.CASE_INSENSITIVE_ORDER) { it.descripcion ?: "" }
+            SortColumn.QUANTITY -> compareBy { it.totalCantidad }
+            SortColumn.REGISTROS -> compareBy { it.registroCount }
+            SortColumn.LOCATION -> compareBy(String.CASE_INSENSITIVE_ORDER) { it.ubicacion ?: "" }
+            SortColumn.TEORICO -> compareBy { it.cantidadTeorica ?: 0.0 }
+            SortColumn.DIFERENCIA -> compareBy { it.diferencia ?: 0.0 }
+        }
+        return if (direction == SortDirection.ASC) data.sortedWith(comparator)
+        else data.sortedWith(comparator.reversed())
     }
 
     private suspend fun generateReport() {
@@ -201,8 +247,9 @@ class InventarioReportsViewModel @Inject constructor(
             }
         }
 
-        _uiState.value = _uiState.value.copy(
-            groupedData = grouped,
+        val state = _uiState.value
+        _uiState.value = state.copy(
+            groupedData = applySorting(grouped, state.sortColumn, state.sortDirection),
             totalQuantity = totalQty,
             totalRegistros = registros.size,
             totalLocations = totalLocations,

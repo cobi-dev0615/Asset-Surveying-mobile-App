@@ -235,7 +235,7 @@ A unified Android app that consolidates two existing client apps (**SERV122** fo
 | Auto-skip | Skips selection if empresa+sucursal already saved |
 | Token validation | Checks both token AND user exist on startup |
 | 401 handling | Auto-logout on expired/invalid token |
-| Demo login | `demo/demo` credentials for testing (to be removed) |
+| Offline login | Falls back to cached user if server unreachable |
 
 ### 2. Inventory Counting (Inventario)
 

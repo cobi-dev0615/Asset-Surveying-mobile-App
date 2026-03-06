@@ -3,7 +3,6 @@ package com.seretail.inventarios.di
 import android.content.Context
 import androidx.room.Room
 import com.seretail.inventarios.data.local.AppDatabase
-import com.seretail.inventarios.data.local.Migrations
 import com.seretail.inventarios.data.local.dao.ActivoFijoDao
 import com.seretail.inventarios.data.local.dao.EmpresaDao
 import com.seretail.inventarios.data.local.dao.InventarioDao
@@ -29,8 +28,7 @@ object AppModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, Constants.DATABASE_NAME)
-            .addMigrations(*Migrations.ALL)
-            .fallbackToDestructiveMigrationFrom(1, 2, 3, 4, 5)
+            .fallbackToDestructiveMigration()
             .build()
 
     @Provides

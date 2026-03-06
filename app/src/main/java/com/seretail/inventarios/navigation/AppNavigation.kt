@@ -102,15 +102,21 @@ fun AppNavigation() {
     var authState by remember { mutableStateOf<Boolean?>(null) }
 
     LaunchedEffect(Unit) {
-        val token = preferencesManager.token.first()
-        val user = navViewModel.authRepository.getCurrentUser()
-        // Must have BOTH a token AND a valid user in the local DB
-        val isLoggedIn = token != null && user != null
-        if (token != null && user == null) {
-            // Stale token without user data — clear it
-            preferencesManager.clearSession()
+        try {
+            val token = preferencesManager.token.first()
+            val user = navViewModel.authRepository.getCurrentUser()
+            // Must have BOTH a token AND a valid user in the local DB
+            val isLoggedIn = token != null && user != null
+            if (token != null && user == null) {
+                // Stale token without user data — clear it
+                preferencesManager.clearSession()
+            }
+            authState = isLoggedIn
+        } catch (e: Exception) {
+            android.util.Log.e("AppNavigation", "Auth check failed", e)
+            // Default to logged-out state on any error
+            authState = false
         }
-        authState = isLoggedIn
     }
 
     // Show loading while checking auth

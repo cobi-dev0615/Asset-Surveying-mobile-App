@@ -23,6 +23,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Switch from splash theme to main app theme
+        setTheme(R.style.Theme_SERInventarios)
         enableEdgeToEdge()
         setContent {
             SERTheme {
@@ -73,11 +75,9 @@ class MainActivity : ComponentActivity() {
         if (char.isLetterOrDigit() || char == '-' || char == '.' || char == '/') {
             if (barcodeBuffer.isEmpty()) {
                 // First character — start buffering, but let it pass through
-                // (in case it's manual typing, the user still sees it)
                 barcodeBuffer.append(char)
                 keyCount = 1
                 lastKeyTime = now
-                // Don't consume — let the character reach the focused TextField
                 return super.dispatchKeyEvent(event)
             }
 

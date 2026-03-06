@@ -59,11 +59,13 @@ import com.seretail.inventarios.ui.theme.SERBlue
 import com.seretail.inventarios.ui.theme.TextMuted
 import com.seretail.inventarios.ui.theme.TextPrimary
 import com.seretail.inventarios.ui.theme.TextSecondary
+import com.seretail.inventarios.util.RbacHelper
 
 @Composable
 fun ActivoFijoListScreen(
     onSessionClick: (Long) -> Unit,
     onCompareClick: (Long, Long) -> Unit = { _, _ -> },
+    userRolId: Int = RbacHelper.CAPTURISTA,
     viewModel: ActivoFijoListViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -81,7 +83,7 @@ fun ActivoFijoListScreen(
             SERTopBar(
                 title = if (state.compareMode) "Selecciona 2 sesiones" else "Activo Fijo",
                 actions = {
-                    if (state.sessions.size >= 2) {
+                    if (state.sessions.size >= 2 && RbacHelper.canCompareSession(userRolId)) {
                         IconButton(onClick = { viewModel.toggleCompareMode() }) {
                             Icon(
                                 Icons.Default.CompareArrows,
@@ -94,7 +96,7 @@ fun ActivoFijoListScreen(
             )
         },
         floatingActionButton = {
-            if (!state.compareMode) {
+            if (!state.compareMode && RbacHelper.canCreateSession(userRolId)) {
                 FloatingActionButton(
                     onClick = { viewModel.showCreateDialog() },
                     containerColor = SERBlue,

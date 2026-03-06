@@ -50,6 +50,7 @@ import com.seretail.inventarios.ui.settings.SettingsScreen
 import com.seretail.inventarios.ui.theme.DarkBackground
 import com.seretail.inventarios.ui.theme.SERBlue
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 object Routes {
     const val LOGIN = "login"
@@ -100,6 +101,8 @@ fun AppNavigation() {
 
     // 3-state auth: null = checking, true = logged in, false = logged out
     var authState by remember { mutableStateOf<Boolean?>(null) }
+    var userRolId by remember { mutableStateOf(com.seretail.inventarios.util.RbacHelper.CAPTURISTA) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         try {
@@ -111,6 +114,9 @@ fun AppNavigation() {
                 if (token != null && user == null) {
                     // Stale token without user data — clear it
                     preferencesManager.clearSession()
+                }
+                if (user != null) {
+                    userRolId = user.rolId
                 }
                 authState = isLoggedIn
             }
@@ -149,6 +155,7 @@ fun AppNavigation() {
             if (showBottomBar) {
                 SERBottomBar(
                     currentRoute = currentRoute,
+                    userRolId = userRolId,
                     onItemClick = { route ->
                         if (route != currentRoute) {
                             navController.navigate(route) {
@@ -173,6 +180,11 @@ fun AppNavigation() {
                 LoginScreen(
                     onLoginSuccess = {
                         authState = true
+                        // Refresh user role after login
+                        scope.launch {
+                            val user = navViewModel.authRepository.getCurrentUser()
+                            if (user != null) userRolId = user.rolId
+                        }
                         // Always go to empresa selection after login
                         // It will auto-skip if already configured
                         navController.navigate(Routes.EMPRESA_SELECTION) {
@@ -253,6 +265,7 @@ fun AppNavigation() {
                     onReportsClick = {
                         navController.navigate(Routes.INVENTARIO_REPORTS)
                     },
+                    userRolId = userRolId,
                 )
             }
 
@@ -291,6 +304,7 @@ fun AppNavigation() {
                     onCompareClick = { s1, s2 ->
                         navController.navigate(Routes.crosscount(s1, s2))
                     },
+                    userRolId = userRolId,
                 )
             }
 
@@ -356,6 +370,7 @@ fun AppNavigation() {
                     onAboutClick = {
                         navController.navigate(Routes.ABOUT)
                     },
+                    userRolId = userRolId,
                 )
             }
 

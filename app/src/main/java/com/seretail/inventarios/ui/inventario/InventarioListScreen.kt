@@ -55,12 +55,14 @@ import com.seretail.inventarios.ui.theme.SERBlue
 import com.seretail.inventarios.ui.theme.TextMuted
 import com.seretail.inventarios.ui.theme.TextPrimary
 import com.seretail.inventarios.ui.theme.TextSecondary
+import com.seretail.inventarios.util.RbacHelper
 
 @Composable
 fun InventarioListScreen(
     onSessionClick: (Long) -> Unit,
     onQueryClick: () -> Unit = {},
     onReportsClick: () -> Unit = {},
+    userRolId: Int = RbacHelper.CAPTURISTA,
     viewModel: InventarioListViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -81,14 +83,16 @@ fun InventarioListScreen(
                     IconButton(onClick = onQueryClick) {
                         Icon(Icons.Default.Search, contentDescription = "Consulta", tint = TextMuted)
                     }
-                    IconButton(onClick = onReportsClick) {
-                        Icon(Icons.Default.Assessment, contentDescription = "Reportes", tint = TextMuted)
+                    if (RbacHelper.canAccessReports(userRolId)) {
+                        IconButton(onClick = onReportsClick) {
+                            Icon(Icons.Default.Assessment, contentDescription = "Reportes", tint = TextMuted)
+                        }
                     }
                 },
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
+            if (RbacHelper.canCreateSession(userRolId)) FloatingActionButton(
                 onClick = { viewModel.showCreateDialog() },
                 containerColor = SERBlue,
                 contentColor = TextPrimary,

@@ -77,6 +77,7 @@ fun SettingsScreen(
     onProductCatalogClick: () -> Unit = {},
     onCatalogImportClick: () -> Unit = {},
     onAboutClick: () -> Unit = {},
+    userRolId: Int = com.seretail.inventarios.util.RbacHelper.CAPTURISTA,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -295,37 +296,39 @@ fun SettingsScreen(
                 Text("Configurar Impresora", color = SERBlue)
             }
 
-            // Import catalog
-            SectionHeader("Catálogo de Productos")
+            // Catalog management (admin only)
+            if (com.seretail.inventarios.util.RbacHelper.canManageCatalog(userRolId)) {
+                SectionHeader("Catálogo de Productos")
 
-            OutlinedButton(
-                onClick = onProductCatalogClick,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-            ) {
-                Icon(Icons.Default.Inventory2, contentDescription = null, tint = SERBlue, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Ver Catálogo de Productos", color = SERBlue)
-            }
+                OutlinedButton(
+                    onClick = onProductCatalogClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                ) {
+                    Icon(Icons.Default.Inventory2, contentDescription = null, tint = SERBlue, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Ver Catálogo de Productos", color = SERBlue)
+                }
 
-            OutlinedButton(
-                onClick = { catalogLauncher.launch("*/*") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-            ) {
-                Icon(Icons.Default.FileUpload, contentDescription = null, tint = SERBlue, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Importar Catálogo (CSV/Excel)", color = SERBlue)
-            }
+                OutlinedButton(
+                    onClick = { catalogLauncher.launch("*/*") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                ) {
+                    Icon(Icons.Default.FileUpload, contentDescription = null, tint = SERBlue, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Importar Catálogo (CSV/Excel)", color = SERBlue)
+                }
 
-            OutlinedButton(
-                onClick = onCatalogImportClick,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-            ) {
-                Icon(Icons.Default.CloudSync, contentDescription = null, tint = SERBlue, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Descargar del Servidor", color = SERBlue)
+                OutlinedButton(
+                    onClick = onCatalogImportClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                ) {
+                    Icon(Icons.Default.CloudSync, contentDescription = null, tint = SERBlue, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Descargar del Servidor", color = SERBlue)
+                }
             }
 
             // Capture Options

@@ -19,6 +19,7 @@ import com.seretail.inventarios.ui.theme.DarkSurface
 import com.seretail.inventarios.ui.theme.SERBlue
 import com.seretail.inventarios.ui.theme.TextMuted
 import com.seretail.inventarios.ui.theme.TextPrimary
+import com.seretail.inventarios.util.RbacHelper
 
 data class BottomNavItem(
     val route: String,
@@ -27,7 +28,7 @@ data class BottomNavItem(
     val badgeCount: Int = 0,
 )
 
-val bottomNavItems = listOf(
+val allBottomNavItems = listOf(
     BottomNavItem("dashboard", "Inicio", Icons.Default.Home),
     BottomNavItem("inventario_list", "Inventario", Icons.Default.Inventory2),
     BottomNavItem("profile", "Mi Página", Icons.Default.Person),
@@ -39,8 +40,12 @@ val bottomNavItems = listOf(
 fun SERBottomBar(
     currentRoute: String?,
     pendingSyncCount: Int = 0,
+    userRolId: Int = RbacHelper.CAPTURISTA,
     onItemClick: (String) -> Unit,
 ) {
+    val allowedTabs = RbacHelper.allowedTabs(userRolId)
+    val bottomNavItems = allBottomNavItems.filter { it.route in allowedTabs }
+
     NavigationBar(containerColor = DarkSurface) {
         bottomNavItems.forEach { item ->
             val selected = currentRoute == item.route

@@ -5,6 +5,7 @@ import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.seretail.inventarios.navigation.AppNavigation
 import com.seretail.inventarios.ui.theme.SERTheme
 import com.seretail.inventarios.util.HardwareScannerBus
@@ -16,15 +17,12 @@ class MainActivity : ComponentActivity() {
     private val barcodeBuffer = StringBuilder()
     private var lastKeyTime = 0L
     private var keyCount = 0
-    // Hardware scanners send chars at <50ms intervals; humans type at >80ms
     private val scannerSpeedThreshold = 50L
-    // Minimum chars to consider it a barcode (not an accidental keystroke)
     private val minBarcodeLength = 3
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
-        // Switch from splash theme to main app theme
-        setTheme(R.style.Theme_SERInventarios)
         enableEdgeToEdge()
         setContent {
             SERTheme {

@@ -103,18 +103,20 @@ fun AppNavigation() {
 
     LaunchedEffect(Unit) {
         try {
-            val token = preferencesManager.token.first()
-            val user = navViewModel.authRepository.getCurrentUser()
-            // Must have BOTH a token AND a valid user in the local DB
-            val isLoggedIn = token != null && user != null
-            if (token != null && user == null) {
-                // Stale token without user data — clear it
-                preferencesManager.clearSession()
+            kotlinx.coroutines.withTimeout(5000L) {
+                val token = preferencesManager.token.first()
+                val user = navViewModel.authRepository.getCurrentUser()
+                // Must have BOTH a token AND a valid user in the local DB
+                val isLoggedIn = token != null && user != null
+                if (token != null && user == null) {
+                    // Stale token without user data — clear it
+                    preferencesManager.clearSession()
+                }
+                authState = isLoggedIn
             }
-            authState = isLoggedIn
         } catch (e: Exception) {
             android.util.Log.e("AppNavigation", "Auth check failed", e)
-            // Default to logged-out state on any error
+            // Default to logged-out state on any error (including timeout)
             authState = false
         }
     }

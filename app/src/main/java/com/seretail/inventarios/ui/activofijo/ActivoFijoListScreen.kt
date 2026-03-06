@@ -19,8 +19,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -104,6 +106,8 @@ fun ActivoFijoListScreen(
         },
         containerColor = DarkBackground,
     ) { padding ->
+        val filtered = viewModel.filteredSessions()
+
         if (state.isLoading) {
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = SERBlue)
@@ -122,27 +126,66 @@ fun ActivoFijoListScreen(
                     .fillMaxSize()
                     .padding(padding),
             ) {
-                LazyColumn(
+                // Search bar
+                OutlinedTextField(
+                    value = state.searchQuery,
+                    onValueChange = { viewModel.onSearchQueryChanged(it) },
+                    placeholder = { Text("Buscar sesión...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextMuted) },
+                    trailingIcon = {
+                        if (state.searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
+                                Icon(Icons.Default.Close, contentDescription = "Limpiar", tint = TextMuted)
+                            }
+                        }
+                    },
+                    singleLine = true,
                     modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 12.dp),
-                ) {
-                    items(state.sessions, key = { it.id }) { session ->
-                        val isSelected = session.id in state.selectedForCompare
-                        SessionCard(
-                            session = session,
-                            isSelected = isSelected,
-                            compareMode = state.compareMode,
-                            onClick = {
-                                if (state.compareMode) {
-                                    viewModel.toggleCompareSelection(session.id)
-                                } else {
-                                    onSessionClick(session.id)
-                                }
-                            },
-                        )
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = DarkSurface,
+                        focusedBorderColor = SERBlue,
+                        unfocusedContainerColor = DarkSurface,
+                        focusedContainerColor = DarkSurface,
+                        unfocusedTextColor = TextPrimary,
+                        focusedTextColor = TextPrimary,
+                        unfocusedPlaceholderColor = TextMuted,
+                        focusedPlaceholderColor = TextMuted,
+                    ),
+                )
+
+                if (filtered.isEmpty()) {
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("Sin resultados para \"${state.searchQuery}\"", color = TextMuted)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp),
+                    ) {
+                        items(filtered, key = { it.id }) { session ->
+                            val isSelected = session.id in state.selectedForCompare
+                            SessionCard(
+                                session = session,
+                                isSelected = isSelected,
+                                compareMode = state.compareMode,
+                                onClick = {
+                                    if (state.compareMode) {
+                                        viewModel.toggleCompareSelection(session.id)
+                                    } else {
+                                        onSessionClick(session.id)
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
 

@@ -1,10 +1,26 @@
 package com.seretail.inventarios
 
 import android.os.Bundle
+import android.util.Log
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.seretail.inventarios.navigation.AppNavigation
 import com.seretail.inventarios.ui.theme.SERTheme
@@ -20,15 +36,62 @@ class MainActivity : ComponentActivity() {
     private val scannerSpeedThreshold = 50L
     private val minBarcodeLength = 3
 
+    private var crashError by mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Check if a previous crash was saved
+        val prefs = getSharedPreferences("crash_log", MODE_PRIVATE)
+        val savedCrash = prefs.getString("last_crash", null)
+        if (savedCrash != null) {
+            crashError = savedCrash
+            prefs.edit().remove("last_crash").apply()
+        }
+
         setContent {
-            SERTheme {
-                AppNavigation()
+            if (crashError != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black)
+                        .padding(24.dp),
+                ) {
+                    Column(
+                        modifier = Modifier.verticalScroll(rememberScrollState()),
+                    ) {
+                        Text("App Crash Log", color = Color.Red, fontSize = 20.sp)
+                        Text(
+                            text = crashError ?: "",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(top = 16.dp),
+                        )
+                        Text(
+                            text = "\n\nTap back to continue to app →",
+                            color = Color.Gray,
+                            fontSize = 14.sp,
+                        )
+                    }
+                }
+            } else {
+                SERTheme {
+                    AppNavigation()
+                }
             }
         }
+    }
+
+    @Deprecated("Use onBackPressedDispatcher", ReplaceWith(""))
+    override fun onBackPressed() {
+        if (crashError != null) {
+            crashError = null // Dismiss crash log and show normal app
+            return
+        }
+        @Suppress("DEPRECATION")
+        super.onBackPressed()
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {

@@ -128,15 +128,15 @@ class CatalogImportViewModel @Inject constructor(
                 try {
                     val lotesResponse = apiService.getLotes(empresaId)
                     if (lotesResponse.isSuccessful) {
-                        val lotes = lotesResponse.body()!!.map {
+                        val lotes = lotesResponse.body()!!.data.map {
                             LoteEntity(
                                 id = it.id,
                                 empresaId = it.empresaId,
-                                productoId = it.productoId,
-                                codigoBarras = it.codigoBarras,
+                                productoId = null,
+                                codigoBarras = it.sku,
                                 lote = it.lote,
-                                caducidad = it.caducidad,
-                                existencia = it.existencia,
+                                caducidad = it.fechaCaducidad,
+                                existencia = it.cantidad?.toInt(),
                             )
                         }
                         loteDao.deleteByEmpresa(empresaId)

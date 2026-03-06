@@ -18,7 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Warning
@@ -179,7 +179,7 @@ fun InventarioCaptureScreen(
                             modifier = Modifier.weight(1f),
                         )
                         IconButton(onClick = onScanBarcode) {
-                            Icon(Icons.Default.CameraAlt, contentDescription = "Escanear", tint = SERBlue)
+                            Icon(Icons.Default.QrCodeScanner, contentDescription = "Escanear", tint = SERBlue)
                         }
                     }
 

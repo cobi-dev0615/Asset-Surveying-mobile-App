@@ -22,7 +22,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
@@ -251,7 +251,7 @@ fun ActivoFijoCaptureScreen(
                                 modifier = Modifier.weight(1f),
                             )
                             IconButton(onClick = onScanBarcode) {
-                                Icon(Icons.Default.CameraAlt, contentDescription = "Escanear", tint = SERBlue)
+                                Icon(Icons.Default.QrCodeScanner, contentDescription = "Escanear", tint = SERBlue)
                             }
                         }
                     }

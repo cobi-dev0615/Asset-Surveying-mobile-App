@@ -12,15 +12,22 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,6 +53,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -54,8 +63,11 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.seretail.inventarios.ui.theme.DarkBackground
+import com.seretail.inventarios.ui.theme.DarkSurface
 import com.seretail.inventarios.ui.theme.SERBlue
+import com.seretail.inventarios.ui.theme.TextMuted
 import com.seretail.inventarios.ui.theme.TextPrimary
+import com.seretail.inventarios.util.HardwareScannerBus
 import java.util.concurrent.Executors
 
 @Composable
@@ -64,6 +76,9 @@ fun BarcodeScannerScreen(
     onBackClick: () -> Unit,
 ) {
     val context = LocalContext.current
+    var hasCamera by remember {
+        mutableStateOf(context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY))
+    }
     var hasPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
@@ -76,22 +91,102 @@ fun BarcodeScannerScreen(
         hasPermission = granted
     }
 
+    // Listen for hardware scanner on this screen too
     LaunchedEffect(Unit) {
-        if (!hasPermission) {
+        HardwareScannerBus.barcodes.collect { barcode ->
+            onBarcodeScanned(barcode)
+        }
+    }
+
+    LaunchedEffect(hasCamera) {
+        if (hasCamera && !hasPermission) {
             permissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 
-    if (hasPermission) {
+    if (hasCamera && hasPermission) {
         CameraPreviewContent(onBarcodeScanned = onBarcodeScanned, onBackClick = onBackClick)
     } else {
-        Box(
+        // No camera or no permission — show hardware scanner prompt
+        HardwareScannerFallback(onBackClick = onBackClick, hasCamera = hasCamera)
+    }
+}
+
+@Composable
+private fun HardwareScannerFallback(
+    onBackClick: () -> Unit,
+    hasCamera: Boolean,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DarkBackground),
+    ) {
+        IconButton(
+            onClick = onBackClick,
             modifier = Modifier
-                .fillMaxSize()
-                .background(DarkBackground),
-            contentAlignment = Alignment.Center,
+                .align(Alignment.TopStart)
+                .padding(16.dp),
         ) {
-            Text("Se requiere permiso de cámara para escanear", color = TextPrimary)
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Regresar",
+                tint = TextPrimary,
+                modifier = Modifier.size(28.dp),
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Icon(
+                Icons.Default.QrCodeScanner,
+                contentDescription = null,
+                tint = SERBlue,
+                modifier = Modifier.size(80.dp),
+            )
+            Spacer(Modifier.height(24.dp))
+            Text(
+                text = "Escáner de Hardware",
+                style = MaterialTheme.typography.titleLarge,
+                color = TextPrimary,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = "Presiona el botón de escaneo en tu dispositivo para leer el código de barras.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextMuted,
+                textAlign = TextAlign.Center,
+            )
+            if (!hasCamera) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Este dispositivo no tiene cámara.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextMuted,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            Spacer(Modifier.height(32.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.7f)
+                    .background(DarkSurface, RoundedCornerShape(12.dp))
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "Esperando lectura...",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = SERBlue,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
         }
     }
 }

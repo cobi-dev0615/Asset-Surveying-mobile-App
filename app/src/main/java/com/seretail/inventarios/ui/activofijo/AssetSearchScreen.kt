@@ -15,7 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -87,7 +87,7 @@ fun AssetSearchScreen(
                 )
                 if (onScanBarcode != null) {
                     IconButton(onClick = onScanBarcode) {
-                        Icon(Icons.Default.CameraAlt, contentDescription = "Escanear", tint = SERBlue)
+                        Icon(Icons.Default.QrCodeScanner, contentDescription = "Escanear", tint = SERBlue)
                     }
                 }
             }

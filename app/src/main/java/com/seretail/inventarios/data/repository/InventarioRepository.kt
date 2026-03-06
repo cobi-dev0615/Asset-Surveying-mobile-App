@@ -35,13 +35,17 @@ class InventarioRepository @Inject constructor(
             val response = apiService.createInventario(CreateSessionRequest(nombre, empresaId, sucursalId))
             if (response.isSuccessful) {
                 val dto = response.body()!!
+                val estado = when {
+                    dto.finalizado == true -> "finalizado"
+                    else -> dto.status?.nombre ?: "activo"
+                }
                 val entity = InventarioEntity(
                     id = dto.id,
                     empresaId = dto.empresaId,
                     sucursalId = dto.sucursalId,
                     nombre = dto.nombre,
-                    tipo = dto.tipo,
-                    estado = dto.estado ?: "activo",
+                    tipo = null,
+                    estado = estado,
                     fechaCreacion = dto.createdAt,
                     empresaNombre = dto.empresa?.nombre,
                     sucursalNombre = dto.sucursal?.nombre,

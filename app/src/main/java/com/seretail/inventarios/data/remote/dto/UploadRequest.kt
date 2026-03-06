@@ -112,4 +112,5 @@ data class UploadResponse(
     val message: String,
     val count: Int? = null,
     val id: Long? = null,
+    val path: String? = null,
 )

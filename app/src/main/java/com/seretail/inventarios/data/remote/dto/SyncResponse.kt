@@ -16,8 +16,8 @@ data class SucursalDto(
 data class ProductoDto(
     val id: Long,
     @Json(name = "empresa_id") val empresaId: Long,
-    @Json(name = "codigo_1") val codigoBarras: String,
-    val descripcion: String,
+    @Json(name = "codigo_1") val codigoBarras: String = "",
+    val descripcion: String = "",
     val categoria: String? = null,
     val marca: String? = null,
     val modelo: String? = null,
@@ -36,18 +36,26 @@ data class ProductoDto(
 data class LoteDto(
     val id: Long,
     @Json(name = "empresa_id") val empresaId: Long,
-    @Json(name = "producto_id") val productoId: Long? = null,
-    @Json(name = "codigo_barras") val codigoBarras: String? = null,
-    val lote: String,
-    val caducidad: String? = null,
-    val existencia: Int? = null,
+    val sku: String? = null,
+    val descripcion: String? = null,
+    val lote: String = "",
+    @Json(name = "fecha_caducidad") val fechaCaducidad: String? = null,
+    val cantidad: Double? = null,
+    val almacen: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
 data class StatusDto(
     val id: Int,
     val status: String,
-    val nombre: String,
+    val nombre: String? = null,
+)
+
+@JsonClass(generateAdapter = true)
+data class SessionStatusDto(
+    val id: Int,
+    val status: String? = null,
+    val nombre: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
@@ -56,11 +64,12 @@ data class InventarioSessionDto(
     @Json(name = "empresa_id") val empresaId: Long,
     @Json(name = "sucursal_id") val sucursalId: Long,
     val nombre: String,
-    val tipo: String? = null,
-    val estado: String? = "activo",
+    @Json(name = "status_id") val statusId: Int? = null,
+    val finalizado: Boolean? = false,
     @Json(name = "created_at") val createdAt: String? = null,
     val empresa: EmpresaDto? = null,
     val sucursal: SucursalDto? = null,
+    val status: SessionStatusDto? = null,
 )
 
 @JsonClass(generateAdapter = true)
@@ -69,10 +78,12 @@ data class ActivoFijoSessionDto(
     @Json(name = "empresa_id") val empresaId: Long,
     @Json(name = "sucursal_id") val sucursalId: Long,
     val nombre: String,
-    val estado: String? = "activo",
+    @Json(name = "status_id") val statusId: Int? = null,
+    val finalizado: Boolean? = false,
     @Json(name = "created_at") val createdAt: String? = null,
     val empresa: EmpresaDto? = null,
     val sucursal: SucursalDto? = null,
+    val status: SessionStatusDto? = null,
 )
 
 @JsonClass(generateAdapter = true)

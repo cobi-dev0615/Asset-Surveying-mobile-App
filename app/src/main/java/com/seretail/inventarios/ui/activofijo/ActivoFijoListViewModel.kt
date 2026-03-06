@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seretail.inventarios.data.local.entity.ActivoFijoSessionEntity
 import com.seretail.inventarios.data.repository.ActivoFijoRepository
+import com.seretail.inventarios.data.repository.SyncRepository
 import com.seretail.inventarios.util.PreferencesManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +28,7 @@ data class ActivoFijoListUiState(
 @HiltViewModel
 class ActivoFijoListViewModel @Inject constructor(
     private val activoFijoRepository: ActivoFijoRepository,
+    private val syncRepository: SyncRepository,
     private val preferencesManager: PreferencesManager,
 ) : ViewModel() {
 
@@ -38,10 +40,17 @@ class ActivoFijoListViewModel @Inject constructor(
             val lastSessionId = preferencesManager.activeActivoFijoSessionId.first()
             _uiState.value = _uiState.value.copy(lastActiveSessionId = lastSessionId)
         }
+        // Observe local DB (updates automatically when sync inserts data)
         viewModelScope.launch {
             activoFijoRepository.observeSessions().collect { sessions ->
                 _uiState.value = _uiState.value.copy(sessions = sessions, isLoading = false)
             }
+        }
+        // Sync sessions from server
+        viewModelScope.launch {
+            try {
+                syncRepository.syncActivoFijoSessions()
+            } catch (_: Exception) {}
         }
     }
 

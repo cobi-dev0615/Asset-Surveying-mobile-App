@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seretail.inventarios.data.local.entity.InventarioEntity
 import com.seretail.inventarios.data.repository.InventarioRepository
+import com.seretail.inventarios.data.repository.SyncRepository
 import com.seretail.inventarios.util.PreferencesManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +26,7 @@ data class InventarioListUiState(
 @HiltViewModel
 class InventarioListViewModel @Inject constructor(
     private val inventarioRepository: InventarioRepository,
+    private val syncRepository: SyncRepository,
     private val preferencesManager: PreferencesManager,
 ) : ViewModel() {
 
@@ -36,10 +38,17 @@ class InventarioListViewModel @Inject constructor(
             val lastSessionId = preferencesManager.activeInventarioSessionId.first()
             _uiState.value = _uiState.value.copy(lastActiveSessionId = lastSessionId)
         }
+        // Observe local DB (updates automatically when sync inserts data)
         viewModelScope.launch {
             inventarioRepository.observeSessions().collect { sessions ->
                 _uiState.value = _uiState.value.copy(sessions = sessions, isLoading = false)
             }
+        }
+        // Sync sessions from server
+        viewModelScope.launch {
+            try {
+                syncRepository.syncInventarioSessions()
+            } catch (_: Exception) {}
         }
     }
 

@@ -2,6 +2,8 @@ package com.seretail.inventarios.ui.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seretail.inventarios.data.local.dao.ActivoFijoDao
+import com.seretail.inventarios.data.local.dao.InventarioDao
 import com.seretail.inventarios.data.local.dao.RegistroDao
 import com.seretail.inventarios.data.repository.AuthRepository
 import com.seretail.inventarios.data.repository.SyncRepository
@@ -38,6 +40,8 @@ data class DashboardUiState(
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val registroDao: RegistroDao,
+    private val inventarioDao: InventarioDao,
+    private val activoFijoDao: ActivoFijoDao,
     private val syncRepository: SyncRepository,
     private val networkMonitor: NetworkMonitor,
     private val authRepository: AuthRepository,
@@ -47,15 +51,30 @@ class DashboardViewModel @Inject constructor(
     val uiState: StateFlow<DashboardUiState> = _uiState
 
     init {
-        loadStats()
+        initialSync()
         observeNetwork()
         loadUser()
     }
 
+    private fun initialSync() {
+        viewModelScope.launch {
+            // Auto-sync sessions from server on dashboard load
+            _uiState.value = _uiState.value.copy(isSyncing = true)
+            try {
+                syncRepository.syncInventarioSessions()
+                syncRepository.syncActivoFijoSessions()
+            } catch (_: Exception) {
+                // Ignore sync errors — will show local data
+            }
+            _uiState.value = _uiState.value.copy(isSyncing = false)
+            loadStats()
+        }
+    }
+
     private fun loadStats() {
         viewModelScope.launch {
-            val invCount = registroDao.countAllInventario()
-            val afCount = registroDao.countAllActivoFijo()
+            val invCount = inventarioDao.count()
+            val afCount = activoFijoDao.count()
             val found = registroDao.countActivoFijoFound()
             val notFound = registroDao.countActivoFijoNotFound()
             val added = registroDao.countActivoFijoAdded()

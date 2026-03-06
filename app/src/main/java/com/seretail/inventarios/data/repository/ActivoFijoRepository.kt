@@ -43,12 +43,16 @@ class ActivoFijoRepository @Inject constructor(
             val response = apiService.createActivoFijoSession(CreateSessionRequest(nombre, empresaId, sucursalId))
             if (response.isSuccessful) {
                 val dto = response.body()!!
+                val estado = when {
+                    dto.finalizado == true -> "finalizado"
+                    else -> dto.status?.nombre ?: "activo"
+                }
                 val entity = ActivoFijoSessionEntity(
                     id = dto.id,
                     empresaId = dto.empresaId,
                     sucursalId = dto.sucursalId,
                     nombre = dto.nombre,
-                    estado = dto.estado ?: "activo",
+                    estado = estado,
                     fechaCreacion = dto.createdAt,
                     empresaNombre = dto.empresa?.nombre,
                     sucursalNombre = dto.sucursal?.nombre,

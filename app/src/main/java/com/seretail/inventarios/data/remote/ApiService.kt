@@ -56,7 +56,7 @@ interface ApiService {
     ): Response<PaginatedResponse<ProductoDto>>
 
     @GET("empresas/{id}/lotes")
-    suspend fun getLotes(@Path("id") empresaId: Long): Response<List<LoteDto>>
+    suspend fun getLotes(@Path("id") empresaId: Long): Response<PaginatedResponse<LoteDto>>
 
     @GET("statuses")
     suspend fun getStatuses(): Response<List<StatusDto>>

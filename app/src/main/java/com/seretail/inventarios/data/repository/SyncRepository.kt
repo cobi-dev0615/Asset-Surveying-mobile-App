@@ -11,7 +11,6 @@ import com.seretail.inventarios.data.local.entity.EmpresaEntity
 import com.seretail.inventarios.data.local.entity.InventarioEntity
 import com.seretail.inventarios.data.local.entity.LoteEntity
 import com.seretail.inventarios.data.local.entity.ProductoEntity
-import com.seretail.inventarios.data.local.entity.StatusEntity
 import com.seretail.inventarios.data.local.entity.SucursalEntity
 import com.seretail.inventarios.data.remote.ApiService
 import com.seretail.inventarios.util.PreferencesManager
@@ -125,15 +124,16 @@ class SyncRepository @Inject constructor(
         return try {
             val response = apiService.getLotes(empresaId)
             if (response.isSuccessful) {
-                val lotes = response.body()!!.map {
+                val body = response.body()!!
+                val lotes = body.data.map {
                     LoteEntity(
                         id = it.id,
                         empresaId = it.empresaId,
-                        productoId = it.productoId,
-                        codigoBarras = it.codigoBarras,
+                        productoId = null,
+                        codigoBarras = it.sku,
                         lote = it.lote,
-                        caducidad = it.caducidad,
-                        existencia = it.existencia,
+                        caducidad = it.fechaCaducidad,
+                        existencia = it.cantidad?.toInt(),
                     )
                 }
                 loteDao.deleteByEmpresa(empresaId)
@@ -152,13 +152,17 @@ class SyncRepository @Inject constructor(
             val response = apiService.getInventarios()
             if (response.isSuccessful) {
                 val sessions = response.body()!!.map {
+                    val estado = when {
+                        it.finalizado == true -> "finalizado"
+                        else -> it.status?.nombre ?: "activo"
+                    }
                     InventarioEntity(
                         id = it.id,
                         empresaId = it.empresaId,
                         sucursalId = it.sucursalId,
                         nombre = it.nombre,
-                        tipo = it.tipo,
-                        estado = it.estado ?: "activo",
+                        tipo = null,
+                        estado = estado,
                         fechaCreacion = it.createdAt,
                         empresaNombre = it.empresa?.nombre,
                         sucursalNombre = it.sucursal?.nombre,
@@ -180,12 +184,16 @@ class SyncRepository @Inject constructor(
             val response = apiService.getActivoFijoSessions()
             if (response.isSuccessful) {
                 val sessions = response.body()!!.map {
+                    val estado = when {
+                        it.finalizado == true -> "finalizado"
+                        else -> it.status?.nombre ?: "activo"
+                    }
                     ActivoFijoSessionEntity(
                         id = it.id,
                         empresaId = it.empresaId,
                         sucursalId = it.sucursalId,
                         nombre = it.nombre,
-                        estado = it.estado ?: "activo",
+                        estado = estado,
                         fechaCreacion = it.createdAt,
                         empresaNombre = it.empresa?.nombre,
                         sucursalNombre = it.sucursal?.nombre,

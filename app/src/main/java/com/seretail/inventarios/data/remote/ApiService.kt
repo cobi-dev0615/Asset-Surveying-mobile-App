@@ -1,6 +1,7 @@
 package com.seretail.inventarios.data.remote
 
 import com.seretail.inventarios.data.remote.dto.ActivoFijoProductoDto
+import com.seretail.inventarios.data.remote.dto.DashboardStatsDto
 import com.seretail.inventarios.data.remote.dto.CreateSessionRequest
 import com.seretail.inventarios.data.remote.dto.ActivoFijoSessionDto
 import com.seretail.inventarios.data.remote.dto.ActivoFijoUploadRequest
@@ -60,6 +61,9 @@ interface ApiService {
 
     @GET("statuses")
     suspend fun getStatuses(): Response<List<StatusDto>>
+
+    @GET("dashboard-stats")
+    suspend fun getDashboardStats(): Response<DashboardStatsDto>
 
     // Inventory Sessions
     @GET("inventarios")

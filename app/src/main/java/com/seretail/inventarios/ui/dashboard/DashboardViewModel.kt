@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.seretail.inventarios.data.local.dao.ActivoFijoDao
 import com.seretail.inventarios.data.local.dao.InventarioDao
 import com.seretail.inventarios.data.local.dao.RegistroDao
+import com.seretail.inventarios.data.remote.ApiService
 import com.seretail.inventarios.data.repository.AuthRepository
 import com.seretail.inventarios.data.repository.SyncRepository
 import com.seretail.inventarios.ui.components.PieSlice
@@ -42,6 +43,7 @@ class DashboardViewModel @Inject constructor(
     private val registroDao: RegistroDao,
     private val inventarioDao: InventarioDao,
     private val activoFijoDao: ActivoFijoDao,
+    private val apiService: ApiService,
     private val syncRepository: SyncRepository,
     private val networkMonitor: NetworkMonitor,
     private val authRepository: AuthRepository,
@@ -58,14 +60,11 @@ class DashboardViewModel @Inject constructor(
 
     private fun initialSync() {
         viewModelScope.launch {
-            // Auto-sync sessions from server on dashboard load
             _uiState.value = _uiState.value.copy(isSyncing = true)
             try {
                 syncRepository.syncInventarioSessions()
                 syncRepository.syncActivoFijoSessions()
-            } catch (_: Exception) {
-                // Ignore sync errors — will show local data
-            }
+            } catch (_: Exception) {}
             _uiState.value = _uiState.value.copy(isSyncing = false)
             loadStats()
         }
@@ -73,36 +72,71 @@ class DashboardViewModel @Inject constructor(
 
     private fun loadStats() {
         viewModelScope.launch {
-            val invCount = inventarioDao.count()
-            val afCount = activoFijoDao.count()
-            val found = registroDao.countActivoFijoFound()
-            val notFound = registroDao.countActivoFijoNotFound()
-            val added = registroDao.countActivoFijoAdded()
-            val transferred = registroDao.countActivoFijoTransferred()
+            // Always get pending sync count from local DB
             val pending = registroDao.countAllUnsynced()
+            _uiState.value = _uiState.value.copy(pendingSyncCount = pending)
 
-            val slices = listOf(
-                PieSlice(found.toFloat(), StatusFound),
-                PieSlice(notFound.toFloat(), StatusNotFound),
-                PieSlice(added.toFloat(), StatusAdded),
-                PieSlice(transferred.toFloat(), StatusTransferred),
-            ).filter { it.value > 0f }
+            // Try server stats first, fall back to local
+            try {
+                val response = apiService.getDashboardStats()
+                if (response.isSuccessful) {
+                    val stats = response.body()!!
+                    val slices = listOf(
+                        PieSlice(stats.found.toFloat(), StatusFound),
+                        PieSlice(stats.notFound.toFloat(), StatusNotFound),
+                        PieSlice(stats.added.toFloat(), StatusAdded),
+                        PieSlice(stats.transferred.toFloat(), StatusTransferred),
+                    ).filter { it.value > 0f }
 
-            val categoryCounts = registroDao.getActivoFijoCategoryCounts()
-            val bars = categoryCounts.map { it.categoria to it.cnt }
+                    val bars = stats.categories.map { it.name to it.count }
 
-            _uiState.value = _uiState.value.copy(
-                inventarioCount = invCount,
-                activoFijoCount = afCount,
-                foundCount = found,
-                notFoundCount = notFound,
-                addedCount = added,
-                transferredCount = transferred,
-                pendingSyncCount = pending,
-                progressSlices = slices,
-                categoryBars = bars,
-            )
+                    _uiState.value = _uiState.value.copy(
+                        inventarioCount = stats.inventarioCount,
+                        activoFijoCount = stats.activoFijoCount,
+                        foundCount = stats.found,
+                        notFoundCount = stats.notFound,
+                        addedCount = stats.added,
+                        transferredCount = stats.transferred,
+                        progressSlices = slices,
+                        categoryBars = bars,
+                    )
+                    return@launch
+                }
+            } catch (_: Exception) {}
+
+            // Fallback: local Room data
+            loadLocalStats()
         }
+    }
+
+    private suspend fun loadLocalStats() {
+        val invCount = inventarioDao.count()
+        val afCount = activoFijoDao.count()
+        val found = registroDao.countActivoFijoFound()
+        val notFound = registroDao.countActivoFijoNotFound()
+        val added = registroDao.countActivoFijoAdded()
+        val transferred = registroDao.countActivoFijoTransferred()
+
+        val slices = listOf(
+            PieSlice(found.toFloat(), StatusFound),
+            PieSlice(notFound.toFloat(), StatusNotFound),
+            PieSlice(added.toFloat(), StatusAdded),
+            PieSlice(transferred.toFloat(), StatusTransferred),
+        ).filter { it.value > 0f }
+
+        val categoryCounts = registroDao.getActivoFijoCategoryCounts()
+        val bars = categoryCounts.map { it.categoria to it.cnt }
+
+        _uiState.value = _uiState.value.copy(
+            inventarioCount = invCount,
+            activoFijoCount = afCount,
+            foundCount = found,
+            notFoundCount = notFound,
+            addedCount = added,
+            transferredCount = transferred,
+            progressSlices = slices,
+            categoryBars = bars,
+        )
     }
 
     private fun observeNetwork() {

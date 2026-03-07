@@ -111,3 +111,20 @@ data class PaginatedResponse<T>(
     @Json(name = "last_page") val lastPage: Int? = null,
     val total: Int? = null,
 )
+
+@JsonClass(generateAdapter = true)
+data class CategoryStatDto(
+    val name: String,
+    val count: Int,
+)
+
+@JsonClass(generateAdapter = true)
+data class DashboardStatsDto(
+    @Json(name = "inventario_count") val inventarioCount: Int = 0,
+    @Json(name = "activo_fijo_count") val activoFijoCount: Int = 0,
+    val found: Int = 0,
+    @Json(name = "not_found") val notFound: Int = 0,
+    val added: Int = 0,
+    val transferred: Int = 0,
+    val categories: List<CategoryStatDto> = emptyList(),
+)

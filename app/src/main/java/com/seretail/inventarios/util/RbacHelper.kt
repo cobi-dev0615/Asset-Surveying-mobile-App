@@ -9,10 +9,10 @@ object RbacHelper {
 
     // Bottom bar tabs each role can see
     private val tabAccess = mapOf(
-        SUPER_ADMIN to setOf("dashboard", "inventario_list", "profile", "activofijo_list", "settings"),
-        SUPERVISOR to setOf("dashboard", "inventario_list", "profile", "activofijo_list", "settings"),
-        CAPTURISTA to setOf("dashboard", "inventario_list", "profile", "activofijo_list"),
-        SUPERVISOR_INVITADO to setOf("dashboard", "profile", "activofijo_list"),
+        SUPER_ADMIN to setOf("dashboard", "inventario_list", "activofijo_list", "rfid_capture", "settings"),
+        SUPERVISOR to setOf("dashboard", "inventario_list", "activofijo_list", "rfid_capture", "settings"),
+        CAPTURISTA to setOf("dashboard", "inventario_list", "activofijo_list", "rfid_capture"),
+        SUPERVISOR_INVITADO to setOf("dashboard", "activofijo_list", "rfid_capture"),
     )
 
     fun allowedTabs(rolId: Int): Set<String> =

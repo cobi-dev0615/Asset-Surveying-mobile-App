@@ -13,8 +13,11 @@ import com.seretail.inventarios.ui.theme.StatusAdded
 import com.seretail.inventarios.ui.theme.StatusFound
 import com.seretail.inventarios.ui.theme.StatusNotFound
 import com.seretail.inventarios.ui.theme.StatusTransferred
+import com.seretail.inventarios.sync.SyncScheduler
 import com.seretail.inventarios.util.NetworkMonitor
+import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -47,6 +50,7 @@ class DashboardViewModel @Inject constructor(
     private val syncRepository: SyncRepository,
     private val networkMonitor: NetworkMonitor,
     private val authRepository: AuthRepository,
+    @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -141,8 +145,15 @@ class DashboardViewModel @Inject constructor(
 
     private fun observeNetwork() {
         viewModelScope.launch {
+            var wasOffline = false
             networkMonitor.isOnline.collectLatest { online ->
                 _uiState.value = _uiState.value.copy(isOnline = online)
+                if (online && wasOffline) {
+                    // Network came back — trigger background sync for pending uploads
+                    SyncScheduler.syncNow(context)
+                    loadStats()
+                }
+                wasOffline = !online
             }
         }
     }
@@ -152,6 +163,7 @@ class DashboardViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isSyncing = true)
             try {
                 syncRepository.syncAll()
+                SyncScheduler.syncNow(context) // also trigger WorkManager for pending uploads
                 loadStats()
                 _uiState.value = _uiState.value.copy(isSyncing = false, syncMessage = "Sincronización completa")
             } catch (e: Exception) {

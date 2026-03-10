@@ -88,8 +88,8 @@ object Routes {
 private val bottomBarRoutes = setOf(
     Routes.DASHBOARD,
     Routes.INVENTARIO_LIST,
-    Routes.PROFILE,
     Routes.ACTIVOFIJO_LIST,
+    Routes.RFID_CAPTURE,
     Routes.SETTINGS,
 )
 
@@ -344,10 +344,10 @@ fun AppNavigation() {
                 )
             }
 
-            // RFID Capture
+            // RFID Capture (top-level when from bottom bar)
             composable(Routes.RFID_CAPTURE) {
                 RfidCaptureScreen(
-                    onBackClick = { navController.popBackStack() },
+                    onBackClick = null,
                 )
             }
 

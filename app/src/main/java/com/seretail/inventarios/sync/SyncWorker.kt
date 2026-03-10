@@ -26,6 +26,7 @@ class SyncWorker @AssistedInject constructor(
             // Upload pending data first (pass context for image base64 encoding)
             inventarioRepository.uploadPendingRegistros()
             activoFijoRepository.uploadPendingRegistros(applicationContext)
+            activoFijoRepository.uploadPendingNoEncontrados()
             activoFijoRepository.uploadPendingTraspasos()
             rfidRepository.uploadPendingTags()
 

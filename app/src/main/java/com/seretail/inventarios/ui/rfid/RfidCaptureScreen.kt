@@ -68,7 +68,7 @@ import com.seretail.inventarios.ui.theme.Warning
 
 @Composable
 fun RfidCaptureScreen(
-    onBackClick: () -> Unit,
+    onBackClick: (() -> Unit)? = null,
     viewModel: RfidCaptureViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()

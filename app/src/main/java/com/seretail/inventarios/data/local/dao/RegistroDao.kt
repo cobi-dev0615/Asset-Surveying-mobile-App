@@ -76,6 +76,9 @@ interface RegistroDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertNoEncontrado(noEncontrado: NoEncontradoEntity): Long
 
+    @Update
+    suspend fun updateNoEncontrado(noEncontrado: NoEncontradoEntity)
+
     // Traspasos
     @Query("SELECT * FROM traspasos WHERE sincronizado = 0")
     suspend fun getUnsyncedTraspasos(): List<TraspasoEntity>

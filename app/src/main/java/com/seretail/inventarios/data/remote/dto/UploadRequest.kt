@@ -61,13 +61,12 @@ data class InventarioRegistroDto(
 @JsonClass(generateAdapter = true)
 data class NoEncontradoUploadRequest(
     @Json(name = "inventario_id") val inventarioId: Long,
-    @Json(name = "no_encontrados") val noEncontrados: List<NoEncontradoDto>,
+    val activos: List<NoEncontradoDto>,
 )
 
 @JsonClass(generateAdapter = true)
 data class NoEncontradoDto(
-    @Json(name = "activo_id") val activoId: String,
-    @Json(name = "usuario_id") val usuarioId: Long,
+    val activo: Long,
     val latitud: Double? = null,
     val longitud: Double? = null,
 )

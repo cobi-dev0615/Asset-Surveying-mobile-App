@@ -108,10 +108,38 @@ fun InventarioListScreen(
             }
         } else if (state.sessions.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Inventory2, contentDescription = null, tint = TextMuted, modifier = Modifier.size(48.dp))
-                    Text("No hay inventarios", color = TextMuted, modifier = Modifier.padding(top = 8.dp))
-                    Text("Toca + para crear uno nuevo", color = TextMuted, style = MaterialTheme.typography.bodySmall)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(32.dp),
+                ) {
+                    Icon(Icons.Default.Inventory2, contentDescription = null, tint = TextMuted, modifier = Modifier.size(64.dp))
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        "No hay inventarios",
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Crea una sesión para iniciar el conteo de productos",
+                        color = TextMuted,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(horizontal = 24.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    )
+                    if (RbacHelper.canCreateSession(userRolId)) {
+                        Spacer(Modifier.height(20.dp))
+                        androidx.compose.material3.Button(
+                            onClick = { viewModel.showCreateDialog() },
+                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = SERBlue),
+                            shape = RoundedCornerShape(8.dp),
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Crear Inventario")
+                        }
+                    }
                 }
             }
         } else {

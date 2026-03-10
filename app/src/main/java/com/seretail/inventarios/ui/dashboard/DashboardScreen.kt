@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Nfc
@@ -152,49 +151,47 @@ fun DashboardScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Main stats row
+            // === 3 MODULE CARDS (equal weight) ===
+            Text(
+                "Módulos",
+                style = MaterialTheme.typography.titleSmall,
+                color = TextSecondary,
+            )
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                StatCard(
+                ModuleCard(
                     title = "Inventario",
+                    subtitle = "Conteo rápido",
                     count = state.inventarioCount,
+                    countLabel = "sesiones",
                     icon = Icons.Default.Inventory2,
                     color = SERBlue,
                     modifier = Modifier.weight(1f),
                     onClick = onNavigateToInventario,
                 )
-                StatCard(
+                ModuleCard(
                     title = "Activo Fijo",
+                    subtitle = "Registro activos",
                     count = state.activoFijoCount,
+                    countLabel = "sesiones",
                     icon = Icons.Default.QrCodeScanner,
                     color = Info,
                     modifier = Modifier.weight(1f),
                     onClick = onNavigateToActivoFijo,
                 )
-            }
-
-            // RFID card
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onNavigateToRfid),
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                shape = RoundedCornerShape(12.dp),
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.Default.Nfc, contentDescription = null, tint = Warning, modifier = Modifier.size(28.dp))
-                    Spacer(Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("RFID", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                        Text("Lector de tags RFID", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-                    }
-                    Icon(Icons.Default.ChevronRight, contentDescription = "Ir", tint = TextMuted, modifier = Modifier.size(20.dp))
-                }
+                ModuleCard(
+                    title = "RFID",
+                    subtitle = "Lector tags",
+                    count = null,
+                    countLabel = null,
+                    icon = Icons.Default.Nfc,
+                    color = Warning,
+                    modifier = Modifier.weight(1f),
+                    onClick = onNavigateToRfid,
+                )
             }
 
             // Pending sync
@@ -218,39 +215,38 @@ fun DashboardScreen(
                 }
             }
 
-            Spacer(Modifier.height(4.dp))
+            // === ACTIVO FIJO STATUS BREAKDOWN ===
+            if (state.foundCount + state.notFoundCount + state.addedCount + state.transferredCount > 0) {
+                Text(
+                    "Desglose Activo Fijo",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = TextSecondary,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
 
-            // Status breakdown section
-            Text(
-                "Desglose Activo Fijo",
-                style = MaterialTheme.typography.titleSmall,
-                color = TextSecondary,
-                modifier = Modifier.padding(bottom = 4.dp),
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                MiniStatCard("Encontrados", state.foundCount, StatusFound, Modifier.weight(1f))
-                MiniStatCard("No Encontrados", state.notFoundCount, StatusNotFound, Modifier.weight(1f))
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                MiniStatCard("Agregados", state.addedCount, StatusAdded, Modifier.weight(1f))
-                MiniStatCard("Traspasados", state.transferredCount, StatusTransferred, Modifier.weight(1f))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    MiniStatCard("Encontrados", state.foundCount, StatusFound, Modifier.weight(1f))
+                    MiniStatCard("No Encontrados", state.notFoundCount, StatusNotFound, Modifier.weight(1f))
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    MiniStatCard("Agregados", state.addedCount, StatusAdded, Modifier.weight(1f))
+                    MiniStatCard("Traspasados", state.transferredCount, StatusTransferred, Modifier.weight(1f))
+                }
             }
 
             // Charts section
             if (state.progressSlices.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(4.dp))
                 Text(
                     "Avance General",
                     style = MaterialTheme.typography.titleSmall,
                     color = TextSecondary,
-                    modifier = Modifier.padding(bottom = 4.dp),
                 )
 
                 Card(
@@ -281,12 +277,11 @@ fun DashboardScreen(
             }
 
             if (state.categoryBars.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(4.dp))
                 Text(
-                    "Activos por Categoria",
+                    "Activos por Categoría",
                     style = MaterialTheme.typography.titleSmall,
                     color = TextSecondary,
-                    modifier = Modifier.padding(bottom = 4.dp),
                 )
 
                 Card(
@@ -297,6 +292,68 @@ fun DashboardScreen(
                     BarChart(
                         data = state.categoryBars,
                         modifier = Modifier.padding(16.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModuleCard(
+    title: String,
+    subtitle: String,
+    count: Int?,
+    countLabel: String?,
+    icon: ImageVector,
+    color: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(color.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = TextPrimary,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = TextMuted,
+            )
+            if (count != null) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = "$count",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = color,
+                )
+                if (countLabel != null) {
+                    Text(
+                        text = countLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary,
                     )
                 }
             }
@@ -318,48 +375,6 @@ private fun ChartLegendItem(label: String, count: Int, color: Color) {
             style = MaterialTheme.typography.labelSmall,
             color = TextSecondary,
         )
-    }
-}
-
-@Composable
-private fun StatCard(
-    title: String,
-    count: Int,
-    icon: ImageVector,
-    color: Color,
-    modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null,
-) {
-    Card(
-        modifier = modifier.then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        shape = RoundedCornerShape(12.dp),
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(28.dp))
-                if (onClick != null) {
-                    Icon(
-                        Icons.Default.ChevronRight,
-                        contentDescription = "Ir",
-                        tint = TextMuted,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-            }
-            Spacer(Modifier.height(12.dp))
-            Text(
-                text = "$count",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary,
-            )
-            Text(title, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-        }
     }
 }
 

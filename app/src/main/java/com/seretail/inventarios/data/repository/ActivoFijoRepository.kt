@@ -154,31 +154,37 @@ class ActivoFijoRepository @Inject constructor(
         return Result.success(totalUploaded)
     }
 
-    suspend fun uploadPendingNoEncontrados(sessionId: Long): Result<Int> {
+    suspend fun uploadPendingNoEncontrados(): Result<Int> {
         val unsynced = registroDao.getUnsyncedNoEncontrados()
         if (unsynced.isEmpty()) return Result.success(0)
 
-        try {
-            val request = NoEncontradoUploadRequest(
-                inventarioId = sessionId,
-                noEncontrados = unsynced.map {
-                    NoEncontradoDto(
-                        activoId = it.activoId,
-                        usuarioId = it.usuarioId,
-                        latitud = it.latitud,
-                        longitud = it.longitud,
-                    )
-                },
-            )
-            val response = apiService.uploadNoEncontrados(request)
-            return if (response.isSuccessful) {
-                Result.success(unsynced.size)
-            } else {
-                Result.failure(Exception("Error al subir no encontrados"))
+        val grouped = unsynced.groupBy { it.sessionId }
+        var totalUploaded = 0
+
+        for ((sessionId, items) in grouped) {
+            try {
+                val request = NoEncontradoUploadRequest(
+                    inventarioId = sessionId,
+                    activos = items.map {
+                        NoEncontradoDto(
+                            activo = it.activoId.toLongOrNull() ?: 0L,
+                            latitud = it.latitud,
+                            longitud = it.longitud,
+                        )
+                    },
+                )
+                val response = apiService.uploadNoEncontrados(request)
+                if (response.isSuccessful) {
+                    for (item in items) {
+                        registroDao.updateNoEncontrado(item.copy(sincronizado = true))
+                    }
+                    totalUploaded += items.size
+                }
+            } catch (_: Exception) {
+                // Will retry on next sync
             }
-        } catch (e: Exception) {
-            return Result.failure(e)
         }
+        return Result.success(totalUploaded)
     }
 
     suspend fun uploadPendingTraspasos(): Result<Int> {

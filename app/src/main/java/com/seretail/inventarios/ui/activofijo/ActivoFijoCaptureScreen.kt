@@ -115,30 +115,31 @@ fun ActivoFijoCaptureScreen(
 
     // Photo capture
     var photoUri by remember { mutableStateOf<Uri?>(null) }
+    var cameraPermissionGranted by remember { mutableStateOf(false) }
+
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success && photoUri != null) {
             viewModel.onPhotoCaptured(photoUri!!)
         }
     }
 
-    // Helper to create URI and launch camera
-    fun launchCamera() {
-        val photoFile = File(context.cacheDir, "photo_${System.currentTimeMillis()}.jpg")
-        photoUri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            photoFile,
-        )
-        cameraLauncher.launch(photoUri!!)
-    }
-
-    // Camera permission launcher
+    // Camera permission launcher — sets flag, then LaunchedEffect below picks it up
     val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) {
-            launchCamera()
+            cameraPermissionGranted = true
         } else {
             scope.launch { snackbarHostState.showSnackbar("Permiso de cámara denegado") }
             viewModel.clearPhotoSlot()
+        }
+    }
+
+    // When permission is freshly granted, launch the camera
+    LaunchedEffect(cameraPermissionGranted) {
+        if (cameraPermissionGranted && state.activePhotoSlot > 0) {
+            cameraPermissionGranted = false
+            val photoFile = File(context.cacheDir, "photo_${System.currentTimeMillis()}.jpg")
+            photoUri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", photoFile)
+            cameraLauncher.launch(photoUri!!)
         }
     }
 
@@ -157,7 +158,9 @@ fun ActivoFijoCaptureScreen(
     LaunchedEffect(state.activePhotoSlot) {
         if (state.activePhotoSlot > 0) {
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                launchCamera()
+                val photoFile = File(context.cacheDir, "photo_${System.currentTimeMillis()}.jpg")
+                photoUri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", photoFile)
+                cameraLauncher.launch(photoUri!!)
             } else {
                 cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
             }

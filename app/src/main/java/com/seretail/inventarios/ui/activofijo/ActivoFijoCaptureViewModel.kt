@@ -374,6 +374,8 @@ class ActivoFijoCaptureViewModel @Inject constructor(
 
     fun clearMessage() { _uiState.value = _uiState.value.copy(message = null) }
 
+    fun clearPhotoSlot() { _uiState.value = _uiState.value.copy(activePhotoSlot = 0) }
+
     fun confirmTransfer() {
         val state = _uiState.value
         val session = state.session ?: return

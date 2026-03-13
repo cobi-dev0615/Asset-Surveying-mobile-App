@@ -1,8 +1,11 @@
 package com.seretail.inventarios.ui.activofijo
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.clickable
@@ -118,6 +121,27 @@ fun ActivoFijoCaptureScreen(
         }
     }
 
+    // Helper to create URI and launch camera
+    fun launchCamera() {
+        val photoFile = File(context.cacheDir, "photo_${System.currentTimeMillis()}.jpg")
+        photoUri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            photoFile,
+        )
+        cameraLauncher.launch(photoUri!!)
+    }
+
+    // Camera permission launcher
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            launchCamera()
+        } else {
+            scope.launch { snackbarHostState.showSnackbar("Permiso de cámara denegado") }
+            viewModel.clearPhotoSlot()
+        }
+    }
+
     LaunchedEffect(sessionId) {
         viewModel.loadSession(sessionId)
     }
@@ -129,16 +153,14 @@ fun ActivoFijoCaptureScreen(
         }
     }
 
-    // Launch camera when activePhotoSlot changes
+    // Launch camera when activePhotoSlot changes (with permission check)
     LaunchedEffect(state.activePhotoSlot) {
         if (state.activePhotoSlot > 0) {
-            val photoFile = File(context.cacheDir, "photo_${System.currentTimeMillis()}.jpg")
-            photoUri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                photoFile,
-            )
-            cameraLauncher.launch(photoUri!!)
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                launchCamera()
+            } else {
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
         }
     }
 

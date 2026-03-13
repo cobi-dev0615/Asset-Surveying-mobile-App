@@ -42,7 +42,6 @@ class SyncRepository @Inject constructor(
                         eliminado = it.eliminado ?: false,
                     )
                 }
-                empresaDao.deleteAll()
                 empresaDao.insertAll(empresas)
                 Result.success(empresas.size)
             } else {
@@ -168,7 +167,8 @@ class SyncRepository @Inject constructor(
                         sucursalNombre = it.sucursal?.nombre,
                     )
                 }
-                inventarioDao.deleteAll()
+                // Use insertAll with REPLACE strategy (defined in DAO) instead of deleteAll + insertAll
+                // to avoid race condition where a session disappears while user navigates to it
                 inventarioDao.insertAll(sessions)
                 Result.success(sessions.size)
             } else {
@@ -199,7 +199,7 @@ class SyncRepository @Inject constructor(
                         sucursalNombre = it.sucursal?.nombre,
                     )
                 }
-                activoFijoDao.deleteAll()
+                // Use REPLACE instead of deleteAll to avoid race condition
                 activoFijoDao.insertAll(sessions)
                 Result.success(sessions.size)
             } else {

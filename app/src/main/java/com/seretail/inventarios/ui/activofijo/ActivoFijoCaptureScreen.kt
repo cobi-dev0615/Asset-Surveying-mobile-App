@@ -46,6 +46,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -193,7 +194,16 @@ fun ActivoFijoCaptureScreen(
                 },
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(snackbarHostState) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = Color(0xFFE0E0E0),
+                    contentColor = Color(0xFF1A1A1A),
+                    actionColor = SERBlue,
+                )
+            }
+        },
         containerColor = DarkBackground,
     ) { padding ->
         if (state.isLoading) {

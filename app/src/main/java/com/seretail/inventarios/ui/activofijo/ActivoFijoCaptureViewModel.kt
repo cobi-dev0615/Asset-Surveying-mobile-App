@@ -87,11 +87,25 @@ class ActivoFijoCaptureViewModel @Inject constructor(
 
     fun loadSession(sessionId: Long) {
         viewModelScope.launch {
-            val session = activoFijoRepository.getSession(sessionId)
-            _uiState.value = _uiState.value.copy(session = session, isLoading = false)
-            preferencesManager.saveActiveActivoFijoSession(sessionId)
+            try {
+                val session = activoFijoRepository.getSession(sessionId)
+                _uiState.value = _uiState.value.copy(
+                    session = session,
+                    isLoading = false,
+                    message = if (session == null) "Sesión no encontrada" else null,
+                )
+                if (session != null) {
+                    preferencesManager.saveActiveActivoFijoSession(sessionId)
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    message = "Error al cargar sesión: ${e.message}",
+                )
+            }
         }
         viewModelScope.launch {
+            try {
             activoFijoRepository.observeRegistros(sessionId).collect { registros ->
                 val categories = registros.mapNotNull { it.categoria }.distinct().sorted()
                 val brands = registros.mapNotNull { it.marca }.distinct().sorted()
@@ -108,6 +122,7 @@ class ActivoFijoCaptureViewModel @Inject constructor(
                     transferredCount = registros.count { it.statusId == 4 },
                 )
             }
+            } catch (_: Exception) {}
         }
     }
 

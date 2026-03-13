@@ -87,22 +87,37 @@ class InventarioCaptureViewModel @Inject constructor(
 
     fun loadSession(sessionId: Long) {
         viewModelScope.launch {
-            val session = inventarioRepository.getSession(sessionId)
-            _uiState.value = _uiState.value.copy(session = session, isLoading = false)
-            preferencesManager.saveActiveInventarioSession(sessionId)
-        }
-        viewModelScope.launch {
-            inventarioRepository.observeRegistros(sessionId).collect { registros ->
-                val totalQty = registros.sumOf { it.cantidad }
-                val totalFac = registros.sumOf { it.factor ?: 0 }
+            try {
+                val session = inventarioRepository.getSession(sessionId)
                 _uiState.value = _uiState.value.copy(
-                    registros = registros,
-                    capturedCount = registros.size,
-                    registroCount = registros.size,
-                    totalQuantity = totalQty,
-                    totalFactor = totalFac,
+                    session = session,
+                    isLoading = false,
+                    message = if (session == null) "Sesión no encontrada" else null,
+                )
+                if (session != null) {
+                    preferencesManager.saveActiveInventarioSession(sessionId)
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    message = "Error al cargar sesión: ${e.message}",
                 )
             }
+        }
+        viewModelScope.launch {
+            try {
+                inventarioRepository.observeRegistros(sessionId).collect { registros ->
+                    val totalQty = registros.sumOf { it.cantidad }
+                    val totalFac = registros.sumOf { it.factor ?: 0 }
+                    _uiState.value = _uiState.value.copy(
+                        registros = registros,
+                        capturedCount = registros.size,
+                        registroCount = registros.size,
+                        totalQuantity = totalQty,
+                        totalFactor = totalFac,
+                    )
+                }
+            } catch (_: Exception) {}
         }
     }
 

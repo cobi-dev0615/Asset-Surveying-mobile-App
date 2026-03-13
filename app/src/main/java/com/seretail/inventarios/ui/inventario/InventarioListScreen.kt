@@ -28,6 +28,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -102,12 +104,23 @@ fun InventarioListScreen(
         },
         containerColor = DarkBackground,
     ) { padding ->
-        if (state.isLoading) {
-            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            // Sync progress bar
+            if (state.isSyncing) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth().height(3.dp),
+                    color = SERBlue,
+                    trackColor = SERBlue.copy(alpha = 0.15f),
+                    strokeCap = StrokeCap.Round,
+                )
+            }
+
+        if (state.isLoading && !state.isSyncing) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = SERBlue)
             }
         } else if (state.sessions.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.padding(32.dp),
@@ -146,7 +159,6 @@ fun InventarioListScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 12.dp),
@@ -156,6 +168,7 @@ fun InventarioListScreen(
                 }
             }
         }
+        } // Column
     }
 
     // Create session dialog

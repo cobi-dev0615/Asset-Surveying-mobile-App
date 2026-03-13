@@ -31,6 +31,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -110,12 +112,23 @@ fun ActivoFijoListScreen(
     ) { padding ->
         val filtered = viewModel.filteredSessions()
 
-        if (state.isLoading) {
-            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            // Sync progress bar
+            if (state.isSyncing) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth().height(3.dp),
+                    color = SERBlue,
+                    trackColor = SERBlue.copy(alpha = 0.15f),
+                    strokeCap = StrokeCap.Round,
+                )
+            }
+
+        if (state.isLoading && !state.isSyncing) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = SERBlue)
             }
         } else if (state.sessions.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.QrCodeScanner, contentDescription = null, tint = TextMuted, modifier = Modifier.size(48.dp))
                     Text("No hay sesiones de activo fijo", color = TextMuted, modifier = Modifier.padding(top = 8.dp))
@@ -124,9 +137,7 @@ fun ActivoFijoListScreen(
             }
         } else {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
+                modifier = Modifier.fillMaxSize(),
             ) {
                 // Search bar
                 OutlinedTextField(
@@ -213,6 +224,7 @@ fun ActivoFijoListScreen(
                 }
             }
         }
+        } // Column
     }
 
     // Create session dialog

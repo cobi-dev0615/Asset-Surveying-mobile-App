@@ -16,6 +16,7 @@ import javax.inject.Inject
 data class ActivoFijoListUiState(
     val sessions: List<ActivoFijoSessionEntity> = emptyList(),
     val isLoading: Boolean = true,
+    val isSyncing: Boolean = false,
     val showCreateDialog: Boolean = false,
     val isCreating: Boolean = false,
     val createdSessionId: Long? = null,
@@ -44,9 +45,11 @@ class ActivoFijoListViewModel @Inject constructor(
         }
         // Sync sessions from server
         viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSyncing = true)
             try {
                 syncRepository.syncActivoFijoSessions()
             } catch (_: Exception) {}
+            _uiState.value = _uiState.value.copy(isSyncing = false)
         }
     }
 

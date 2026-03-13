@@ -58,8 +58,13 @@ class RfidManager @Inject constructor() {
                 } else {
                     _state.value = RfidState.Error("No se pudo conectar al lector RFID (código: $result)")
                 }
-            } catch (e: Exception) {
-                _state.value = RfidState.Error("Error de conexión: ${e.message}")
+            } catch (e: Throwable) {
+                val msg = if (e is UnsatisfiedLinkError) {
+                    "Lector RFID no disponible en este dispositivo"
+                } else {
+                    "Error de conexión: ${e.message}"
+                }
+                _state.value = RfidState.Error(msg)
             }
         }
     }

@@ -61,7 +61,7 @@ object Routes {
     const val ACTIVOFIJO_CAPTURE = "activofijo_capture/{sessionId}"
     const val RFID_CAPTURE = "rfid_capture"
     const val SETTINGS = "settings"
-    const val SCANNER = "scanner/{returnRoute}"
+    const val SCANNER = "scanner"
     const val CROSSCOUNT = "crosscount/{session1Id}/{session2Id}"
     const val PROFILE = "profile"
     const val EMPRESA_SELECTION = "empresa_selection"
@@ -76,7 +76,7 @@ object Routes {
 
     fun inventarioCapture(sessionId: Long) = "inventario_capture/$sessionId"
     fun activoFijoCapture(sessionId: Long) = "activofijo_capture/$sessionId"
-    fun scanner(returnRoute: String) = "scanner/$returnRoute"
+    fun scanner(returnRoute: String = "") = "scanner"
     fun crosscount(s1: Long, s2: Long) = "crosscount/$s1/$s2"
     fun assetCatalog(sessionId: Long) = "asset_catalog/$sessionId"
     fun assetSearch(sessionId: Long) = "asset_search/$sessionId"
@@ -502,10 +502,7 @@ fun AppNavigation() {
             }
 
             // Barcode Scanner (fullscreen overlay)
-            composable(
-                route = Routes.SCANNER,
-                arguments = listOf(navArgument("returnRoute") { type = NavType.StringType }),
-            ) {
+            composable(route = Routes.SCANNER) {
                 BarcodeScannerScreen(
                     onBarcodeScanned = { barcode ->
                         navController.previousBackStackEntry

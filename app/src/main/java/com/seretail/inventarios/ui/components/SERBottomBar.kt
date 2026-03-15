@@ -46,11 +46,22 @@ fun SERBottomBar(
     val allowedTabs = RbacHelper.allowedTabs(userRolId)
     val bottomNavItems = allBottomNavItems.filter { it.route in allowedTabs }
 
+    // Lock module navigation: if in one module, disable the other
+    val isInInventario = currentRoute == "inventario_list"
+    val isInActivoFijo = currentRoute == "activofijo_list"
+
     NavigationBar(containerColor = DarkSurface) {
         bottomNavItems.forEach { item ->
             val selected = currentRoute == item.route
+            // Disable opposite module tab when user is in a module
+            val enabled = when {
+                isInInventario && item.route == "activofijo_list" -> false
+                isInActivoFijo && item.route == "inventario_list" -> false
+                else -> true
+            }
             NavigationBarItem(
                 selected = selected,
+                enabled = enabled,
                 onClick = { onItemClick(item.route) },
                 icon = {
                     if (item.route == "dashboard" && pendingSyncCount > 0) {
@@ -67,8 +78,8 @@ fun SERBottomBar(
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = SERBlue,
                     selectedTextColor = SERBlue,
-                    unselectedIconColor = TextMuted,
-                    unselectedTextColor = TextMuted,
+                    unselectedIconColor = if (enabled) TextMuted else TextMuted.copy(alpha = 0.3f),
+                    unselectedTextColor = if (enabled) TextMuted else TextMuted.copy(alpha = 0.3f),
                     indicatorColor = SERBlue.copy(alpha = 0.12f),
                 ),
             )

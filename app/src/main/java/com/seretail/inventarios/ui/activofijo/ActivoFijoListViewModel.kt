@@ -37,10 +37,16 @@ class ActivoFijoListViewModel @Inject constructor(
     val uiState: StateFlow<ActivoFijoListUiState> = _uiState
 
     init {
-        // Observe local DB (updates automatically when sync inserts data)
+        // Observe local DB filtered by selected empresa/sucursal
         viewModelScope.launch {
+            val empresaId = preferencesManager.empresaId.first()
+            val sucursalId = preferencesManager.sucursalId.first()
             activoFijoRepository.observeSessions().collect { sessions ->
-                _uiState.value = _uiState.value.copy(sessions = sessions, isLoading = false)
+                val filtered = sessions.filter { s ->
+                    (empresaId == null || s.empresaId == empresaId) &&
+                        (sucursalId == null || s.sucursalId == sucursalId)
+                }
+                _uiState.value = _uiState.value.copy(sessions = filtered, isLoading = false)
             }
         }
         // Sync sessions from server

@@ -162,24 +162,26 @@ fun DashboardScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Selected empresa/sucursal context
-            if (state.empresaNombre != null || state.sucursalNombre != null) {
+            val empresaNombre = state.empresaNombre
+            val sucursalNombre = state.sucursalNombre
+            if (empresaNombre != null || sucursalNombre != null) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = SERBlue.copy(alpha = 0.12f)),
                     shape = RoundedCornerShape(10.dp),
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
-                        if (state.empresaNombre != null) {
+                        if (empresaNombre != null) {
                             Text(
-                                text = state.empresaNombre,
+                                text = empresaNombre,
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = TextPrimary,
                             )
                         }
-                        if (state.sucursalNombre != null) {
+                        if (sucursalNombre != null) {
                             Text(
-                                text = state.sucursalNombre,
+                                text = sucursalNombre,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = SERBlue,
                             )

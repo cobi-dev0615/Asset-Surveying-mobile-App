@@ -160,6 +160,15 @@ class PreferencesManager @Inject constructor(
         dataStore.edit { it.remove(KEY_ACTIVE_ACTIVO_FIJO_SESSION_ID) }
     }
 
+    suspend fun clearEmpresaSucursal() {
+        dataStore.edit {
+            it.remove(KEY_EMPRESA_ID)
+            it.remove(KEY_EMPRESA_NOMBRE)
+            it.remove(KEY_SUCURSAL_ID)
+            it.remove(KEY_SUCURSAL_NOMBRE)
+        }
+    }
+
     suspend fun clearSession() {
         dataStore.edit {
             it.remove(KEY_TOKEN)

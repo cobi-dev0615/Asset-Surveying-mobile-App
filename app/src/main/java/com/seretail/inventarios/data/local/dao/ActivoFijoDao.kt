@@ -21,6 +21,9 @@ interface ActivoFijoDao {
     @Query("SELECT COUNT(*) FROM activo_fijo_sessions")
     suspend fun count(): Int
 
+    @Query("SELECT COUNT(*) FROM activo_fijo_sessions WHERE empresa_id = :empresaId AND sucursal_id = :sucursalId")
+    suspend fun countByEmpresaSucursal(empresaId: Long, sucursalId: Long): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(session: ActivoFijoSessionEntity): Long
 

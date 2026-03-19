@@ -28,8 +28,8 @@ class RfidRepository @Inject constructor(
     fun observeTags(sessionId: Long): Flow<List<RfidTagEntity>> =
         rfidTagDao.observeBySession(sessionId)
 
-    fun connect(serialPort: String = "/dev/ttyS4", baudRate: Int = 115200) {
-        rfidManager.connect(serialPort, baudRate)
+    fun connect() {
+        rfidManager.connect()
     }
 
     fun disconnect() = rfidManager.disconnect()

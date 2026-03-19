@@ -32,7 +32,19 @@ class RfidManager @Inject constructor() {
     private var currentPower: Int = 20
     private var inventoryJob: Job? = null
 
-    fun connect(serialPort: String = "/dev/ttyS4", baudRate: Int = 115200) {
+    companion object {
+        // Common serial port paths for Chainway and other RFID handhelds
+        private val SERIAL_PORTS = listOf(
+            "/dev/ttyS4",  // Chainway C72, C71
+            "/dev/ttyS1",  // Chainway older models
+            "/dev/ttyS3",  // Some Chainway variants
+            "/dev/ttyS0",  // Generic
+            "/dev/ttyS2",  // Generic
+        )
+        private val BAUD_RATES = listOf(115200, 57600)
+    }
+
+    fun connect(serialPort: String? = null, baudRate: Int = 115200) {
         scope.launch {
             try {
                 _state.value = RfidState.Connecting
@@ -51,13 +63,35 @@ class RfidManager @Inject constructor() {
                     override fun tagCallbackFailed(i: Int): Int = 0
                 })
 
-                val result = baseReader.Connect(serialPort, baudRate, 0)
-                if (result == 0) {
-                    reader = baseReader
-                    _state.value = RfidState.Connected
-                } else {
-                    _state.value = RfidState.Error("No se pudo conectar al lector RFID (código: $result)")
+                // If specific port given, try it directly
+                if (serialPort != null) {
+                    val result = baseReader.Connect(serialPort, baudRate, 0)
+                    if (result == 0) {
+                        reader = baseReader
+                        _state.value = RfidState.Connected
+                        return@launch
+                    }
                 }
+
+                // Auto-detect: try common serial ports and baud rates
+                for (port in SERIAL_PORTS) {
+                    for (rate in BAUD_RATES) {
+                        try {
+                            val result = baseReader.Connect(port, rate, 0)
+                            if (result == 0) {
+                                reader = baseReader
+                                _state.value = RfidState.Connected
+                                return@launch
+                            }
+                        } catch (_: Throwable) {
+                            // Try next port
+                        }
+                    }
+                }
+
+                _state.value = RfidState.Error(
+                    "No se pudo conectar al lector RFID. Verifique que el dispositivo tenga lector RFID activado.",
+                )
             } catch (e: Throwable) {
                 val msg = when {
                     e is UnsatisfiedLinkError ->

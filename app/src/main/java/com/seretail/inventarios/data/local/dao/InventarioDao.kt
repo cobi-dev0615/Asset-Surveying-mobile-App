@@ -24,6 +24,9 @@ interface InventarioDao {
     @Query("SELECT COUNT(*) FROM inventarios")
     suspend fun count(): Int
 
+    @Query("SELECT COUNT(*) FROM inventarios WHERE empresa_id = :empresaId AND sucursal_id = :sucursalId")
+    suspend fun countByEmpresaSucursal(empresaId: Long, sucursalId: Long): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(inventario: InventarioEntity): Long
 

@@ -50,14 +50,10 @@ class EmpresaSucursalSelectionViewModel @Inject constructor(
 
     private fun checkExistingSelection() {
         viewModelScope.launch {
-            val empresaId = preferencesManager.empresaId.first()
-            val sucursalId = preferencesManager.sucursalId.first()
-            if (empresaId != null && sucursalId != null) {
-                // Already configured — skip straight to dashboard
-                _uiState.value = _uiState.value.copy(isLoading = false, selectionComplete = true)
-            } else {
-                loadEmpresas()
-            }
+            // Always force empresa/sucursal selection on every app launch
+            // Clear previous selection so user must choose again
+            preferencesManager.clearEmpresaSucursal()
+            loadEmpresas()
         }
     }
 

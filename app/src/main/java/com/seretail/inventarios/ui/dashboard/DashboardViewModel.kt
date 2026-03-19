@@ -9,6 +9,7 @@ import com.seretail.inventarios.data.remote.ApiService
 import com.seretail.inventarios.data.repository.AuthRepository
 import com.seretail.inventarios.data.repository.SyncRepository
 import com.seretail.inventarios.ui.components.PieSlice
+import com.seretail.inventarios.util.PreferencesManager
 import com.seretail.inventarios.ui.theme.StatusAdded
 import com.seretail.inventarios.ui.theme.StatusFound
 import com.seretail.inventarios.ui.theme.StatusNotFound
@@ -21,6 +22,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -37,6 +39,8 @@ data class DashboardUiState(
     val syncMessage: String? = null,
     val userName: String? = null,
     val userRolId: Int? = null,
+    val empresaNombre: String? = null,
+    val sucursalNombre: String? = null,
     val progressSlices: List<PieSlice> = emptyList(),
     val categoryBars: List<Pair<String, Int>> = emptyList(),
 )
@@ -50,6 +54,7 @@ class DashboardViewModel @Inject constructor(
     private val syncRepository: SyncRepository,
     private val networkMonitor: NetworkMonitor,
     private val authRepository: AuthRepository,
+    private val preferencesManager: PreferencesManager,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
@@ -57,9 +62,21 @@ class DashboardViewModel @Inject constructor(
     val uiState: StateFlow<DashboardUiState> = _uiState
 
     init {
+        loadEmpresaInfo()
         initialSync()
         observeNetwork()
         loadUser()
+    }
+
+    private fun loadEmpresaInfo() {
+        viewModelScope.launch {
+            val empresaNombre = preferencesManager.empresaNombre.first()
+            val sucursalNombre = preferencesManager.sucursalNombre.first()
+            _uiState.value = _uiState.value.copy(
+                empresaNombre = empresaNombre,
+                sucursalNombre = sucursalNombre,
+            )
+        }
     }
 
     private fun initialSync() {
@@ -114,8 +131,19 @@ class DashboardViewModel @Inject constructor(
     }
 
     private suspend fun loadLocalStats() {
-        val invCount = inventarioDao.count()
-        val afCount = activoFijoDao.count()
+        val empresaId = preferencesManager.empresaId.first()
+        val sucursalId = preferencesManager.sucursalId.first()
+
+        val invCount = if (empresaId != null && sucursalId != null) {
+            inventarioDao.countByEmpresaSucursal(empresaId, sucursalId)
+        } else {
+            inventarioDao.count()
+        }
+        val afCount = if (empresaId != null && sucursalId != null) {
+            activoFijoDao.countByEmpresaSucursal(empresaId, sucursalId)
+        } else {
+            activoFijoDao.count()
+        }
         val found = registroDao.countActivoFijoFound()
         val notFound = registroDao.countActivoFijoNotFound()
         val added = registroDao.countActivoFijoAdded()

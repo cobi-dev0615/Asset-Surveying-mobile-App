@@ -161,6 +161,33 @@ fun DashboardScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // Selected empresa/sucursal context
+            if (state.empresaNombre != null || state.sucursalNombre != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = SERBlue.copy(alpha = 0.12f)),
+                    shape = RoundedCornerShape(10.dp),
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        if (state.empresaNombre != null) {
+                            Text(
+                                text = state.empresaNombre,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary,
+                            )
+                        }
+                        if (state.sucursalNombre != null) {
+                            Text(
+                                text = state.sucursalNombre,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SERBlue,
+                            )
+                        }
+                    }
+                }
+            }
+
             // === 3 MODULE CARDS (equal weight) ===
             Text(
                 "Módulos",

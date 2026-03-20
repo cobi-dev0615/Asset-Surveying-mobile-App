@@ -155,7 +155,7 @@ fun InventarioCaptureScreen(
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
-                        Icons.Default.Inventory2,
+                        Icons.Default.QrCodeScanner,
                         contentDescription = null,
                         tint = TextMuted,
                         modifier = Modifier.size(64.dp),

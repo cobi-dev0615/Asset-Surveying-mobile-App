@@ -17,6 +17,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -74,14 +75,22 @@ class InventarioCaptureViewModel @Inject constructor(
 
     private fun loadCaptureOptions() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                showFactor = preferencesManager.captureFactor.first(),
-                showSerial = preferencesManager.captureSerial.first(),
-                showLotes = preferencesManager.captureLotes.first(),
-                allowForced = preferencesManager.allowForcedCodes.first(),
-                validateCatalog = preferencesManager.validateCatalog.first(),
-                conteoUnidad = preferencesManager.conteoUnidad.first(),
-            )
+            val factor = preferencesManager.captureFactor.first()
+            val serial = preferencesManager.captureSerial.first()
+            val lotes = preferencesManager.captureLotes.first()
+            val forced = preferencesManager.allowForcedCodes.first()
+            val validate = preferencesManager.validateCatalog.first()
+            val conteo = preferencesManager.conteoUnidad.first()
+            _uiState.update {
+                it.copy(
+                    showFactor = factor,
+                    showSerial = serial,
+                    showLotes = lotes,
+                    allowForced = forced,
+                    validateCatalog = validate,
+                    conteoUnidad = conteo,
+                )
+            }
         }
     }
 
@@ -89,19 +98,23 @@ class InventarioCaptureViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val session = inventarioRepository.getSession(sessionId)
-                _uiState.value = _uiState.value.copy(
-                    session = session,
-                    isLoading = false,
-                    message = if (session == null) "Sesión no encontrada" else null,
-                )
+                _uiState.update {
+                    it.copy(
+                        session = session,
+                        isLoading = false,
+                        message = if (session == null) "Sesión no encontrada" else null,
+                    )
+                }
                 if (session != null) {
                     preferencesManager.saveActiveInventarioSession(sessionId)
                 }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    message = "Error al cargar sesión: ${e.message}",
-                )
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        message = "Error al cargar sesión: ${e.message}",
+                    )
+                }
             }
         }
         viewModelScope.launch {
@@ -109,13 +122,15 @@ class InventarioCaptureViewModel @Inject constructor(
                 inventarioRepository.observeRegistros(sessionId).collect { registros ->
                     val totalQty = registros.sumOf { it.cantidad }
                     val totalFac = registros.sumOf { it.factor ?: 0 }
-                    _uiState.value = _uiState.value.copy(
-                        registros = registros,
-                        capturedCount = registros.size,
-                        registroCount = registros.size,
-                        totalQuantity = totalQty,
-                        totalFactor = totalFac,
-                    )
+                    _uiState.update {
+                        it.copy(
+                            registros = registros,
+                            capturedCount = registros.size,
+                            registroCount = registros.size,
+                            totalQuantity = totalQty,
+                            totalFactor = totalFac,
+                        )
+                    }
                 }
             } catch (_: Exception) {}
         }

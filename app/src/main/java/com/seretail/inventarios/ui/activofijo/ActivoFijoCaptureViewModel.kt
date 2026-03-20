@@ -18,6 +18,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -89,39 +90,45 @@ class ActivoFijoCaptureViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val session = activoFijoRepository.getSession(sessionId)
-                _uiState.value = _uiState.value.copy(
-                    session = session,
-                    isLoading = false,
-                    message = if (session == null) "Sesión no encontrada" else null,
-                )
+                _uiState.update {
+                    it.copy(
+                        session = session,
+                        isLoading = false,
+                        message = if (session == null) "Sesión no encontrada" else null,
+                    )
+                }
                 if (session != null) {
                     preferencesManager.saveActiveActivoFijoSession(sessionId)
                 }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    message = "Error al cargar sesión: ${e.message}",
-                )
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        message = "Error al cargar sesión: ${e.message}",
+                    )
+                }
             }
         }
         viewModelScope.launch {
             try {
-            activoFijoRepository.observeRegistros(sessionId).collect { registros ->
-                val categories = registros.mapNotNull { it.categoria }.distinct().sorted()
-                val brands = registros.mapNotNull { it.marca }.distinct().sorted()
-                val areas = registros.mapNotNull { it.ubicacion }.distinct().sorted()
-                allBrands = brands
-                allAreas = areas
-                _uiState.value = _uiState.value.copy(
-                    registros = registros,
-                    categories = categories,
-                    capturedCount = registros.size,
-                    foundCount = registros.count { it.statusId == 1 },
-                    notFoundCount = registros.count { it.statusId == 2 },
-                    addedCount = registros.count { it.statusId == 3 },
-                    transferredCount = registros.count { it.statusId == 4 },
-                )
-            }
+                activoFijoRepository.observeRegistros(sessionId).collect { registros ->
+                    val categories = registros.mapNotNull { it.categoria }.distinct().sorted()
+                    val brands = registros.mapNotNull { it.marca }.distinct().sorted()
+                    val areas = registros.mapNotNull { it.ubicacion }.distinct().sorted()
+                    allBrands = brands
+                    allAreas = areas
+                    _uiState.update {
+                        it.copy(
+                            registros = registros,
+                            categories = categories,
+                            capturedCount = registros.size,
+                            foundCount = registros.count { r -> r.statusId == 1 },
+                            notFoundCount = registros.count { r -> r.statusId == 2 },
+                            addedCount = registros.count { r -> r.statusId == 3 },
+                            transferredCount = registros.count { r -> r.statusId == 4 },
+                        )
+                    }
+                }
             } catch (_: Exception) {}
         }
     }

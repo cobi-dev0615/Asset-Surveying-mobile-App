@@ -3,6 +3,7 @@ package com.seretail.inventarios.data.local
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.seretail.inventarios.data.local.dao.ActivoFijoDao
+import com.seretail.inventarios.data.local.dao.ActivoFijoProductoDao
 import com.seretail.inventarios.data.local.dao.EmpresaDao
 import com.seretail.inventarios.data.local.dao.InventarioDao
 import com.seretail.inventarios.data.local.dao.LoteDao
@@ -12,6 +13,7 @@ import com.seretail.inventarios.data.local.dao.RfidTagDao
 import com.seretail.inventarios.data.local.dao.SucursalDao
 import com.seretail.inventarios.data.local.dao.SyncQueueDao
 import com.seretail.inventarios.data.local.dao.UserDao
+import com.seretail.inventarios.data.local.entity.ActivoFijoProductoEntity
 import com.seretail.inventarios.data.local.entity.ActivoFijoRegistroEntity
 import com.seretail.inventarios.data.local.entity.ActivoFijoSessionEntity
 import com.seretail.inventarios.data.local.entity.EmpresaEntity
@@ -43,8 +45,9 @@ import com.seretail.inventarios.data.local.entity.UserEntity
         StatusEntity::class,
         SyncQueueEntity::class,
         RfidTagEntity::class,
+        ActivoFijoProductoEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -58,4 +61,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun registroDao(): RegistroDao
     abstract fun syncQueueDao(): SyncQueueDao
     abstract fun rfidTagDao(): RfidTagDao
+    abstract fun activoFijoProductoDao(): ActivoFijoProductoDao
 }

@@ -39,6 +39,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
@@ -110,6 +111,7 @@ fun ActivoFijoCaptureScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var showForm by remember { mutableStateOf(true) }
+    var showPending by remember { mutableStateOf(false) }
     var showExportDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
@@ -482,74 +484,140 @@ fun ActivoFijoCaptureScreen(
                     }
                 }
             } else {
-                // Registros list
+                // Registros + Pendientes list
                 Column(modifier = Modifier.weight(1f)) {
-                    // Session stats dashboard
-                    if (state.registros.isNotEmpty()) {
-                        SessionStatsDashboard(
-                            total = state.capturedCount,
-                            found = state.foundCount,
-                            notFound = state.notFoundCount,
-                            added = state.addedCount,
-                            transferred = state.transferredCount,
+                    // Tab row: Capturados | Pendientes
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        FilterChip(
+                            selected = !showPending,
+                            onClick = { showPending = false },
+                            label = { Text("Capturados (${state.registros.size})") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = SERBlue.copy(alpha = 0.2f),
+                                selectedLabelColor = SERBlue,
+                                labelColor = TextMuted,
+                            ),
+                        )
+                        FilterChip(
+                            selected = showPending,
+                            onClick = { showPending = true },
+                            label = { Text("Pendientes (${state.pendingCount})") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = SERBlue.copy(alpha = 0.2f),
+                                selectedLabelColor = SERBlue,
+                                labelColor = TextMuted,
+                            ),
                         )
                     }
 
-                    // Category filter
-                    if (state.categories.isNotEmpty()) {
-                        LazyRow(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            item {
-                                FilterChip(
-                                    selected = state.selectedCategoryFilter == null,
-                                    onClick = { viewModel.onCategoryFilterChanged(null) },
-                                    label = { Text("Todos") },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = SERBlue.copy(alpha = 0.2f),
-                                        selectedLabelColor = SERBlue,
-                                        labelColor = TextMuted,
-                                    ),
-                                )
+                    if (!showPending) {
+                        // Session stats dashboard
+                        if (state.registros.isNotEmpty()) {
+                            SessionStatsDashboard(
+                                total = state.capturedCount,
+                                found = state.foundCount,
+                                notFound = state.notFoundCount,
+                                added = state.addedCount,
+                                transferred = state.transferredCount,
+                            )
+                        }
+
+                        // Category filter
+                        if (state.categories.isNotEmpty()) {
+                            LazyRow(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                item {
+                                    FilterChip(
+                                        selected = state.selectedCategoryFilter == null,
+                                        onClick = { viewModel.onCategoryFilterChanged(null) },
+                                        label = { Text("Todos") },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = SERBlue.copy(alpha = 0.2f),
+                                            selectedLabelColor = SERBlue,
+                                            labelColor = TextMuted,
+                                        ),
+                                    )
+                                }
+                                items(state.categories) { cat ->
+                                    FilterChip(
+                                        selected = state.selectedCategoryFilter == cat,
+                                        onClick = { viewModel.onCategoryFilterChanged(cat) },
+                                        label = { Text(cat) },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = SERBlue.copy(alpha = 0.2f),
+                                            selectedLabelColor = SERBlue,
+                                            labelColor = TextMuted,
+                                        ),
+                                    )
+                                }
                             }
-                            items(state.categories) { cat ->
-                                FilterChip(
-                                    selected = state.selectedCategoryFilter == cat,
-                                    onClick = { viewModel.onCategoryFilterChanged(cat) },
-                                    label = { Text(cat) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = SERBlue.copy(alpha = 0.2f),
-                                        selectedLabelColor = SERBlue,
-                                        labelColor = TextMuted,
-                                    ),
+                        }
+
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp),
+                        ) {
+                            val filteredRegistros = viewModel.getFilteredRegistros()
+                            items(filteredRegistros, key = { it.id }) { registro ->
+                                ScanResultCard(
+                                    barcode = registro.codigoBarras,
+                                    description = registro.descripcion,
+                                    statusId = registro.statusId,
+                                    onEdit = { viewModel.enterEditMode(registro); showForm = true },
+                                    onDelete = { viewModel.deleteRegistro(registro.id) },
                                 )
                             }
                         }
-                    }
-
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp),
-                    ) {
-                        val filteredRegistros = viewModel.getFilteredRegistros()
-                        items(filteredRegistros, key = { it.id }) { registro ->
-                            ScanResultCard(
-                                barcode = registro.codigoBarras,
-                                description = registro.descripcion,
-                                statusId = registro.statusId,
-                                onEdit = { viewModel.enterEditMode(registro); showForm = true },
-                                onDelete = { viewModel.deleteRegistro(registro.id) },
+                    } else {
+                        // Pending products list
+                        if (state.isSyncingCatalog) {
+                            LinearProgressIndicator(
+                                modifier = Modifier.fillMaxWidth().height(3.dp),
+                                color = SERBlue,
+                                trackColor = SERBlue.copy(alpha = 0.15f),
                             )
+                        }
+                        val pendingProducts = viewModel.getPendingProducts()
+                        if (pendingProducts.isEmpty() && !state.isSyncingCatalog) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    if (state.catalogCount == 0) "No hay catálogo de activos para esta sesión"
+                                    else "Todos los activos han sido capturados",
+                                    color = TextMuted,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp),
+                            ) {
+                                items(pendingProducts, key = { it.id }) { producto ->
+                                    PendingAssetCard(producto = producto)
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            // Bottom toggle bar
+            // Bottom toggle bar with pending count
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -558,11 +626,20 @@ fun ActivoFijoCaptureScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = "Registros: ${state.registros.size}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
-                )
+                Column {
+                    Text(
+                        text = "Registros: ${state.registros.size}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary,
+                    )
+                    if (state.catalogCount > 0) {
+                        Text(
+                            text = "Pendientes: ${state.pendingCount} / ${state.catalogCount}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (state.pendingCount > 0) SERBlue else TextMuted,
+                        )
+                    }
+                }
                 TextButton(onClick = { showForm = !showForm }) {
                     Text(
                         if (showForm) "Ver registros" else "Capturar",
@@ -685,5 +762,45 @@ private fun StatBadge(label: String, value: String, color: Color, modifier: Modi
     ) {
         Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = color)
         Text(label, style = MaterialTheme.typography.labelSmall, color = TextMuted, maxLines = 1)
+    }
+}
+
+@Composable
+private fun PendingAssetCard(producto: com.seretail.inventarios.data.local.entity.ActivoFijoProductoEntity) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        shape = RoundedCornerShape(10.dp),
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = producto.codigo1 ?: producto.codigo2 ?: "Sin código",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = TextPrimary,
+            )
+            if (producto.descripcion != null) {
+                Text(
+                    text = producto.descripcion,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary,
+                    maxLines = 2,
+                )
+            }
+            Row(
+                modifier = Modifier.padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (producto.marca != null) {
+                    Text("${producto.marca}", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                }
+                if (producto.modelo != null) {
+                    Text("${producto.modelo}", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                }
+                if (producto.categoria1 != null) {
+                    Text("${producto.categoria1}", style = MaterialTheme.typography.labelSmall, color = SERBlue)
+                }
+            }
+        }
     }
 }

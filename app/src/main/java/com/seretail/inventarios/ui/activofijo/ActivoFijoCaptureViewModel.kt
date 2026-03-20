@@ -4,12 +4,15 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seretail.inventarios.data.local.dao.ActivoFijoProductoDao
 import com.seretail.inventarios.data.local.dao.RegistroDao
+import com.seretail.inventarios.data.local.entity.ActivoFijoProductoEntity
 import com.seretail.inventarios.data.local.entity.ActivoFijoRegistroEntity
 import com.seretail.inventarios.data.local.entity.ActivoFijoSessionEntity
 import com.seretail.inventarios.data.local.entity.TraspasoEntity
 import com.seretail.inventarios.data.repository.ActivoFijoRepository
 import com.seretail.inventarios.data.repository.AuthRepository
+import com.seretail.inventarios.data.repository.SyncRepository
 import com.seretail.inventarios.util.FeedbackManager
 import com.seretail.inventarios.util.HardwareScannerBus
 import com.seretail.inventarios.util.LocationHelper
@@ -63,6 +66,10 @@ data class ActivoFijoCaptureUiState(
     val showTransferDialog: Boolean = false,
     val transferOriginSucursalId: Long? = null,
     val transferOriginSucursalName: String? = null,
+    // Pending catalog
+    val catalogProducts: List<ActivoFijoProductoEntity> = emptyList(),
+    val pendingCount: Int = 0,
+    val isSyncingCatalog: Boolean = false,
 )
 
 @HiltViewModel
@@ -70,6 +77,8 @@ class ActivoFijoCaptureViewModel @Inject constructor(
     private val activoFijoRepository: ActivoFijoRepository,
     private val authRepository: AuthRepository,
     private val registroDao: RegistroDao,
+    private val activoFijoProductoDao: ActivoFijoProductoDao,
+    private val syncRepository: SyncRepository,
     private val feedbackManager: FeedbackManager,
     private val preferencesManager: PreferencesManager,
     @ApplicationContext private val appContext: Context,
@@ -130,6 +139,43 @@ class ActivoFijoCaptureViewModel @Inject constructor(
                     }
                 }
             } catch (_: Exception) {}
+        }
+        // Sync and observe catalog (pending assets)
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isSyncingCatalog = true) }
+                syncRepository.syncActivoFijoProductos(sessionId)
+                _uiState.update { it.copy(isSyncingCatalog = false) }
+            } catch (_: Exception) {
+                _uiState.update { it.copy(isSyncingCatalog = false) }
+            }
+        }
+        viewModelScope.launch {
+            try {
+                activoFijoProductoDao.observeBySession(sessionId).collect { productos ->
+                    val capturedBarcodes = _uiState.value.registros.map { it.codigoBarras }.toSet()
+                    val pending = productos.filter { p ->
+                        val codes = listOfNotNull(p.codigo1, p.codigo2, p.codigo3)
+                        codes.none { it in capturedBarcodes }
+                    }
+                    _uiState.update {
+                        it.copy(
+                            catalogProducts = productos,
+                            catalogCount = productos.size,
+                            pendingCount = pending.size,
+                        )
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun getPendingProducts(): List<ActivoFijoProductoEntity> {
+        val state = _uiState.value
+        val capturedBarcodes = state.registros.map { it.codigoBarras }.toSet()
+        return state.catalogProducts.filter { p ->
+            val codes = listOfNotNull(p.codigo1, p.codigo2, p.codigo3)
+            codes.none { it in capturedBarcodes }
         }
     }
 

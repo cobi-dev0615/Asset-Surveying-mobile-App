@@ -1,11 +1,13 @@
 package com.seretail.inventarios.data.repository
 
 import com.seretail.inventarios.data.local.dao.ActivoFijoDao
+import com.seretail.inventarios.data.local.dao.ActivoFijoProductoDao
 import com.seretail.inventarios.data.local.dao.EmpresaDao
 import com.seretail.inventarios.data.local.dao.InventarioDao
 import com.seretail.inventarios.data.local.dao.LoteDao
 import com.seretail.inventarios.data.local.dao.ProductoDao
 import com.seretail.inventarios.data.local.dao.SucursalDao
+import com.seretail.inventarios.data.local.entity.ActivoFijoProductoEntity
 import com.seretail.inventarios.data.local.entity.ActivoFijoSessionEntity
 import com.seretail.inventarios.data.local.entity.EmpresaEntity
 import com.seretail.inventarios.data.local.entity.InventarioEntity
@@ -28,6 +30,7 @@ class SyncRepository @Inject constructor(
     private val loteDao: LoteDao,
     private val inventarioDao: InventarioDao,
     private val activoFijoDao: ActivoFijoDao,
+    private val activoFijoProductoDao: ActivoFijoProductoDao,
     private val preferencesManager: PreferencesManager,
 ) {
     suspend fun syncEmpresas(): Result<Int> {
@@ -205,6 +208,47 @@ class SyncRepository @Inject constructor(
             } else {
                 Result.failure(Exception("Error al sincronizar activo fijo"))
             }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun syncActivoFijoProductos(sessionId: Long): Result<Int> {
+        return try {
+            var page = 1
+            var totalInserted = 0
+            activoFijoProductoDao.deleteBySession(sessionId)
+
+            while (true) {
+                val response = apiService.getActivoFijoProductos(sessionId, page)
+                if (!response.isSuccessful) break
+
+                val body = response.body() ?: break
+                val productos = body.data.map {
+                    ActivoFijoProductoEntity(
+                        id = it.id,
+                        inventarioId = it.inventarioId,
+                        empresaId = it.empresaId,
+                        codigo1 = it.codigo1,
+                        codigo2 = it.codigo2,
+                        codigo3 = it.codigo3,
+                        tagRfid = it.tagRfid,
+                        descripcion = it.descripcion,
+                        nSerie = it.nSerie,
+                        categoria1 = it.categoria1,
+                        categoria2 = it.categoria2,
+                        marca = it.marca,
+                        modelo = it.modelo,
+                        tipoActivo = it.tipoActivo,
+                    )
+                }
+                activoFijoProductoDao.insertAll(productos)
+                totalInserted += productos.size
+
+                if (page >= (body.lastPage ?: 1)) break
+                page++
+            }
+            Result.success(totalInserted)
         } catch (e: Exception) {
             Result.failure(e)
         }

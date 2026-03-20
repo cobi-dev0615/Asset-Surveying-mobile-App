@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.seretail.inventarios.data.local.AppDatabase
 import com.seretail.inventarios.data.local.dao.ActivoFijoDao
+import com.seretail.inventarios.data.local.dao.ActivoFijoProductoDao
 import com.seretail.inventarios.data.local.dao.EmpresaDao
 import com.seretail.inventarios.data.local.dao.InventarioDao
 import com.seretail.inventarios.data.local.dao.LoteDao
@@ -57,4 +58,7 @@ object AppModule {
 
     @Provides
     fun provideSyncQueueDao(db: AppDatabase): SyncQueueDao = db.syncQueueDao()
+
+    @Provides
+    fun provideActivoFijoProductoDao(db: AppDatabase): ActivoFijoProductoDao = db.activoFijoProductoDao()
 }

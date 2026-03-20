@@ -229,6 +229,8 @@ class InventarioCaptureViewModel @Inject constructor(
             feedbackManager.playSuccess()
             clearForm()
             _uiState.value = _uiState.value.copy(message = "Registro guardado")
+            // Trigger background sync to upload to server
+            com.seretail.inventarios.sync.SyncScheduler.syncNow(appContext)
         }
     }
 

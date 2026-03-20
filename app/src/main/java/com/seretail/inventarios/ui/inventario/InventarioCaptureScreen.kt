@@ -195,6 +195,13 @@ fun InventarioCaptureScreen(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    // Ubicación first - persistent across captures
+                    SERTextField(
+                        value = state.location,
+                        onValueChange = viewModel::onLocationChanged,
+                        label = "Ubicación (se mantiene entre capturas)",
+                    )
+
                     // Forced code warning
                     if (state.isForcedCode) {
                         Row(
@@ -210,21 +217,12 @@ fun InventarioCaptureScreen(
                         }
                     }
 
-                    // Barcode row
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        SERTextField(
-                            value = state.barcode,
-                            onValueChange = viewModel::onBarcodeChanged,
-                            label = "Código de barras",
-                            modifier = Modifier.weight(1f),
-                        )
-                        IconButton(onClick = onScanBarcode) {
-                            Icon(Icons.Default.QrCodeScanner, contentDescription = "Escanear", tint = SERBlue)
-                        }
-                    }
+                    // Barcode field (hardware laser scanner - no camera button needed)
+                    SERTextField(
+                        value = state.barcode,
+                        onValueChange = viewModel::onBarcodeChanged,
+                        label = "Código de barras",
+                    )
 
                     SERTextField(
                         value = state.description,
@@ -277,15 +275,6 @@ fun InventarioCaptureScreen(
                                 )
                             }
                         }
-                    }
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SERTextField(
-                            value = state.location,
-                            onValueChange = viewModel::onLocationChanged,
-                            label = "Ubicación",
-                            modifier = Modifier.weight(1f),
-                        )
                     }
 
                     // Lote row with autocomplete dropdown

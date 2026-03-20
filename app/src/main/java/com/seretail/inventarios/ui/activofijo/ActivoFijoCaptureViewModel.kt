@@ -318,6 +318,7 @@ class ActivoFijoCaptureViewModel @Inject constructor(
                 feedbackManager.playSuccess()
                 clearForm()
                 _uiState.value = _uiState.value.copy(message = "Activo actualizado")
+                com.seretail.inventarios.sync.SyncScheduler.syncNow(appContext)
             } else {
                 val registro = ActivoFijoRegistroEntity(
                     sessionId = session.id,
@@ -345,6 +346,8 @@ class ActivoFijoCaptureViewModel @Inject constructor(
                 feedbackManager.playSuccess()
                 clearForm()
                 _uiState.value = _uiState.value.copy(message = "Activo guardado")
+                // Trigger background sync to upload to server
+                com.seretail.inventarios.sync.SyncScheduler.syncNow(appContext)
             }
         }
     }

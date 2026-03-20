@@ -283,6 +283,28 @@ fun ActivoFijoCaptureScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp),
                 ) {
+                    // Área first - persistent across captures (with autocomplete)
+                    item {
+                        Box {
+                            SERTextField(
+                                value = state.area,
+                                onValueChange = viewModel::onAreaChanged,
+                                label = "Área (se mantiene entre capturas)",
+                            )
+                            DropdownMenu(
+                                expanded = state.showAreaSuggestions,
+                                onDismissRequest = viewModel::dismissAreaSuggestions,
+                            ) {
+                                state.areaSuggestions.forEach { suggestion ->
+                                    DropdownMenuItem(
+                                        text = { Text(suggestion, color = TextPrimary) },
+                                        onClick = { viewModel.selectAreaSuggestion(suggestion) },
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     // Edit mode indicator
                     if (state.isEditMode) {
                         item {
@@ -307,19 +329,13 @@ fun ActivoFijoCaptureScreen(
                         }
                     }
 
-                    // Barcode
+                    // Barcode (hardware laser scanner - no camera button needed)
                     item {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            SERTextField(
-                                value = state.barcode,
-                                onValueChange = viewModel::onBarcodeChanged,
-                                label = "Código de barras",
-                                modifier = Modifier.weight(1f),
-                            )
-                            IconButton(onClick = onScanBarcode) {
-                                Icon(Icons.Default.QrCodeScanner, contentDescription = "Escanear", tint = SERBlue)
-                            }
-                        }
+                        SERTextField(
+                            value = state.barcode,
+                            onValueChange = viewModel::onBarcodeChanged,
+                            label = "Código de barras",
+                        )
                     }
 
                     // Description
@@ -379,7 +395,7 @@ fun ActivoFijoCaptureScreen(
                         }
                     }
 
-                    // Serie + Location
+                    // Serie + Ubicación
                     item {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             SERTextField(
@@ -394,28 +410,6 @@ fun ActivoFijoCaptureScreen(
                                 label = "Ubicación",
                                 modifier = Modifier.weight(1f),
                             )
-                        }
-                    }
-
-                    // Area with autocomplete
-                    item {
-                        Box {
-                            SERTextField(
-                                value = state.area,
-                                onValueChange = viewModel::onAreaChanged,
-                                label = "Área (se mantiene entre capturas)",
-                            )
-                            DropdownMenu(
-                                expanded = state.showAreaSuggestions,
-                                onDismissRequest = viewModel::dismissAreaSuggestions,
-                            ) {
-                                state.areaSuggestions.forEach { suggestion ->
-                                    DropdownMenuItem(
-                                        text = { Text(suggestion, color = TextPrimary) },
-                                        onClick = { viewModel.selectAreaSuggestion(suggestion) },
-                                    )
-                                }
-                            }
                         }
                     }
 

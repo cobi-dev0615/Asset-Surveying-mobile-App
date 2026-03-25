@@ -63,7 +63,10 @@ interface ApiService {
     suspend fun getStatuses(): Response<List<StatusDto>>
 
     @GET("dashboard-stats")
-    suspend fun getDashboardStats(): Response<DashboardStatsDto>
+    suspend fun getDashboardStats(
+        @Query("empresa_id") empresaId: Long? = null,
+        @Query("sucursal_id") sucursalId: Long? = null,
+    ): Response<DashboardStatsDto>
 
     // Inventory Sessions
     @GET("inventarios")

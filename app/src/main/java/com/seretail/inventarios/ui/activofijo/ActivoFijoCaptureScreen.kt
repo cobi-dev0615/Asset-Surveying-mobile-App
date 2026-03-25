@@ -110,8 +110,8 @@ fun ActivoFijoCaptureScreen(
     val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    var showForm by remember { mutableStateOf(true) }
-    var showPending by remember { mutableStateOf(false) }
+    var showForm by remember { mutableStateOf(false) }
+    var showPending by remember { mutableStateOf(true) }
     var showExportDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 

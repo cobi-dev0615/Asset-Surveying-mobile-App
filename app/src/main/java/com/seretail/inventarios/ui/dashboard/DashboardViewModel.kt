@@ -99,7 +99,9 @@ class DashboardViewModel @Inject constructor(
 
             // Try server stats first, fall back to local
             try {
-                val response = apiService.getDashboardStats()
+                val empresaId = preferencesManager.empresaId.first()
+                val sucursalId = preferencesManager.sucursalId.first()
+                val response = apiService.getDashboardStats(empresaId, sucursalId)
                 if (response.isSuccessful) {
                     val stats = response.body()!!
                     val slices = listOf(

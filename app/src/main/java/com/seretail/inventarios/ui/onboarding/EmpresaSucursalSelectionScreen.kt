@@ -156,14 +156,10 @@ fun EmpresaSucursalSelectionScreen(
                             )
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                "Verifica la conexión al servidor",
+                                "Verifica la conexión al servidor y presiona Actualizar",
                                 color = TextMuted,
                                 style = MaterialTheme.typography.bodySmall,
                             )
-                            Spacer(Modifier.height(24.dp))
-                            TextButton(onClick = onSelectionComplete) {
-                                Text("Omitir", color = SERBlue, fontWeight = FontWeight.SemiBold)
-                            }
                         }
                     }
                 }

@@ -50,6 +50,9 @@ ksp {
 }
 
 dependencies {
+    // RT501 UHF RFID SDK (lcrrgxmodule)
+    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar"))))
+
     // AndroidX Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

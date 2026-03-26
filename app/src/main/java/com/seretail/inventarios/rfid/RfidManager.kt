@@ -3,7 +3,9 @@ package com.seretail.inventarios.rfid
 import android.os.Build
 import android.os.SystemClock
 import android.util.Log
-import com.rfid.trans.BaseReader
+import com.lckj.lcrrgxmodule.factory.ILcUhfProduct
+import com.lckj.lcrrgxmodule.factory.LcModule
+import com.rfid.PowerUtil
 import com.rfid.trans.ReadTag
 import com.rfid.trans.TagCallback
 import kotlinx.coroutines.CoroutineScope
@@ -17,8 +19,6 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.io.File
-import java.io.FileWriter
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -33,71 +33,47 @@ class RfidManager @Inject constructor() {
     private val _tags = MutableSharedFlow<ReadTag>(extraBufferCapacity = 256)
     val tags: SharedFlow<ReadTag> = _tags
 
-    private var reader: BaseReader? = null
+    private var uhfProduct: ILcUhfProduct? = null
     private var currentPower: Int = 20
     private var inventoryJob: Job? = null
 
     companion object {
         private const val TAG = "RfidManager"
-        // GPIO path to power on/off the UHF RFID module (Chainway devices)
-        private const val GPIO_UHF_POWER = "/proc/gpiocontrol/set_uhf"
-        private const val GPIO_ID_POWER = "/proc/gpiocontrol/set_id"
-        // Serial port paths by device/SDK version
+        // Serial port paths matching RT501 SDK (Connect232.java)
         private const val PORT_DEFAULT = "/dev/ttyS3"
         private const val PORT_SDK28 = "/dev/ttyS2"
-        // Additional ports to try
-        private val EXTRA_PORTS = listOf("/dev/ttyS4", "/dev/ttyS1", "/dev/ttyS0")
     }
 
-    /**
-     * Power on the RFID module via GPIO before opening serial port.
-     * Chainway devices require this step.
-     */
-    private fun powerOnRfidModule() {
-        try {
-            val gpioFile = File(GPIO_UHF_POWER)
-            if (gpioFile.exists()) {
-                FileWriter(gpioFile).use { it.write("1") }
-                Log.d(TAG, "RFID GPIO power ON via $GPIO_UHF_POWER")
-                // Wait 1.5 seconds for the module to power up
-                SystemClock.sleep(1500)
-            } else {
-                Log.d(TAG, "GPIO path $GPIO_UHF_POWER not found, skipping power-on")
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Could not power on RFID via GPIO: ${e.message}")
-        }
-        // Also try ID power GPIO
-        try {
-            val gpioFile = File(GPIO_ID_POWER)
-            if (gpioFile.exists()) {
-                FileWriter(gpioFile).use { it.write("1") }
-                Log.d(TAG, "ID GPIO power ON via $GPIO_ID_POWER")
-            }
-        } catch (_: Exception) {}
-    }
-
-    private fun powerOffRfidModule() {
-        try {
-            val gpioFile = File(GPIO_UHF_POWER)
-            if (gpioFile.exists()) {
-                FileWriter(gpioFile).use { it.write("0") }
-                Log.d(TAG, "RFID GPIO power OFF")
-            }
-        } catch (_: Exception) {}
-    }
-
-    fun connect(serialPort: String? = null, baudRate: Int = 115200) {
+    fun connect() {
         scope.launch {
             try {
                 _state.value = RfidState.Connecting
 
-                // Step 1: Power on the RFID module via GPIO
-                powerOnRfidModule()
+                // Step 1: Power on the RFID module via PowerUtil (from SDK)
+                try {
+                    PowerUtil.power("1")
+                    Log.d(TAG, "PowerUtil.power(1) — module powered ON")
+                    SystemClock.sleep(1500)
+                } catch (e: Throwable) {
+                    Log.w(TAG, "PowerUtil.power failed: ${e.message}")
+                }
 
-                // Step 2: Create reader and set callback
-                val baseReader = BaseReader()
-                baseReader.SetCallBack(object : TagCallback {
+                // Step 2: Create RFID product via LcModule factory (matches SDK demo)
+                val product: ILcUhfProduct = try {
+                    // Try with Context first (auto-detects device type)
+                    LcModule().createProduct()
+                } catch (_: Throwable) {
+                    try {
+                        // Fallback: RR product (0x10)
+                        LcModule().createProduct(0x10)
+                    } catch (_: Throwable) {
+                        // Fallback: GX product (0x20)
+                        LcModule().createProduct(0x20)
+                    }
+                }
+
+                // Step 3: Set tag callback
+                product.SetCallBack(object : TagCallback {
                     override fun tagCallback(tag: ReadTag?) {
                         tag?.let {
                             scope.launch { _tags.emit(it) }
@@ -105,48 +81,45 @@ class RfidManager @Inject constructor() {
                     }
 
                     override fun CRCErrorCallBack(i: Int): Int = 0
-
                     override fun FinishCallBack() {}
-
                     override fun tagCallbackFailed(i: Int): Int = 0
                 })
 
-                // Step 3: Try to connect
-                // If specific port given, try it directly
-                if (serialPort != null) {
-                    val result = baseReader.Connect(serialPort, baudRate, 1)
-                    if (result == 0) {
-                        SystemClock.sleep(100)
-                        reader = baseReader
-                        _state.value = RfidState.Connected
-                        Log.d(TAG, "Connected on $serialPort @ $baudRate")
-                        return@launch
-                    }
-                }
+                // Step 4: Connect to serial port (matching SDK's Connect232.java logic)
+                val port = if (Build.VERSION.SDK_INT == Build.VERSION_CODES.P) PORT_SDK28 else PORT_DEFAULT
+                Log.d(TAG, "Connecting on $port @ 115200...")
+                val result = product.Connect(port, 115200)
 
-                // Auto-detect: determine primary port based on SDK version
-                val primaryPort = if (Build.VERSION.SDK_INT == 28) PORT_SDK28 else PORT_DEFAULT
-                val portsToTry = listOf(primaryPort) + EXTRA_PORTS.filter { it != primaryPort }
+                if (result == 0) {
+                    uhfProduct = product
+                    SystemClock.sleep(100)
+                    _state.value = RfidState.Connected
+                    Log.d(TAG, "Connected successfully on $port")
 
-                for (port in portsToTry) {
+                    // Set initial power
                     try {
-                        Log.d(TAG, "Trying $port @ 115200...")
-                        val result = baseReader.Connect(port, 115200, 1)
-                        if (result == 0) {
-                            SystemClock.sleep(100) // Stabilization delay
-                            reader = baseReader
-                            _state.value = RfidState.Connected
-                            Log.d(TAG, "Connected on $port @ 115200")
-                            return@launch
-                        }
-                    } catch (_: Throwable) {
-                        // Try next port
+                        product.SetRfPower(currentPower)
+                    } catch (_: Throwable) {}
+                } else {
+                    // Try the other port
+                    val altPort = if (port == PORT_DEFAULT) PORT_SDK28 else PORT_DEFAULT
+                    Log.d(TAG, "Failed on $port (result=$result), trying $altPort...")
+                    val altResult = product.Connect(altPort, 115200)
+
+                    if (altResult == 0) {
+                        uhfProduct = product
+                        SystemClock.sleep(100)
+                        _state.value = RfidState.Connected
+                        Log.d(TAG, "Connected successfully on $altPort")
+                        try {
+                            product.SetRfPower(currentPower)
+                        } catch (_: Throwable) {}
+                    } else {
+                        _state.value = RfidState.Error(
+                            "No se pudo conectar al lector RFID (código: $result). Verifique que el módulo RFID esté activado.",
+                        )
                     }
                 }
-
-                _state.value = RfidState.Error(
-                    "No se pudo conectar al lector RFID. Verifique que el módulo RFID esté activado.",
-                )
             } catch (e: Throwable) {
                 val msg = when {
                     e is UnsatisfiedLinkError ->
@@ -155,8 +128,9 @@ class RfidManager @Inject constructor() {
                         e.message?.contains("SerialPort", ignoreCase = true) == true ->
                         "No se detectó hardware RFID. Conecte el lector e intente nuevamente."
                     else ->
-                        "Error de conexión RFID: ${e.javaClass.simpleName}"
+                        "Error de conexión RFID: ${e.javaClass.simpleName} - ${e.message}"
                 }
+                Log.e(TAG, "Connection failed", e)
                 _state.value = RfidState.Error(msg)
             }
         }
@@ -167,11 +141,15 @@ class RfidManager @Inject constructor() {
             try {
                 inventoryJob?.cancel()
                 inventoryJob = null
-                reader?.DisConnect()
-                reader = null
-                powerOffRfidModule()
+                uhfProduct?.DisConnect()
+                uhfProduct = null
+                // Power off module
+                try {
+                    PowerUtil.power("0")
+                    Log.d(TAG, "PowerUtil.power(0) — module powered OFF")
+                } catch (_: Throwable) {}
                 _state.value = RfidState.Disconnected
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _state.value = RfidState.Disconnected
             }
         }
@@ -180,26 +158,33 @@ class RfidManager @Inject constructor() {
     fun startInventory() {
         scope.launch {
             try {
-                reader?.let { r ->
+                uhfProduct?.let { product ->
                     _state.value = RfidState.Scanning
                     inventoryJob?.cancel()
+
+                    // Use SDK's StartRead() which handles inventory loop internally
+                    // Tags arrive via TagCallback set during connect()
+                    val result = product.StartRead()
+                    if (result != 0) {
+                        Log.w(TAG, "StartRead returned $result")
+                    }
+
+                    // Also poll for tags via getInventoryTagMapList() as backup
                     inventoryJob = scope.launch {
                         while (isActive) {
-                            val epcData = ByteArray(25600)
-                            val epcLen = IntArray(1)
-                            val tagCount = IntArray(1)
-                            r.Inventory_G2(
-                                0xFF.toByte(), // ComAddr (broadcast)
-                                4.toByte(),    // Q-value
-                                0.toByte(),    // Session
-                                0.toByte(),    // TID pointer
-                                0.toByte(),    // TID length
-                                0.toByte(),    // Session flag
-                                0x80.toByte(), // Antenna
-                                20,            // Scan time (20ms)
-                                epcData, epcLen, tagCount
-                            )
-                            delay(20) // Interval between scans
+                            try {
+                                val tagList = product.getInventoryTagMapList()
+                                if (tagList != null && tagList.isNotEmpty()) {
+                                    for (tagMap in tagList) {
+                                        val tag = ReadTag()
+                                        tag.epcId = tagMap.strEPC ?: ""
+                                        tag.rssi = tagMap.strRSSI?.toIntOrNull() ?: 0
+                                        tag.antId = tagMap.antenna
+                                        scope.launch { _tags.emit(tag) }
+                                    }
+                                }
+                            } catch (_: Throwable) {}
+                            delay(100)
                         }
                     }
                 } ?: run {
@@ -216,7 +201,8 @@ class RfidManager @Inject constructor() {
             try {
                 inventoryJob?.cancel()
                 inventoryJob = null
-                reader?.let {
+                uhfProduct?.StopRead()
+                if (uhfProduct != null) {
                     _state.value = RfidState.Connected
                 }
             } catch (e: Exception) {
@@ -229,7 +215,7 @@ class RfidManager @Inject constructor() {
         currentPower = power.coerceIn(0, 30)
         scope.launch {
             try {
-                reader?.SetRfPower(0xFF.toByte(), currentPower.toByte())
+                uhfProduct?.SetRfPower(currentPower)
             } catch (_: Exception) {}
         }
     }

@@ -92,6 +92,11 @@ interface ApiService {
         @Query("per_page") perPage: Int = 500,
     ): Response<PaginatedResponse<ActivoFijoProductoDto>>
 
+    @GET("activo-fijo/registros")
+    suspend fun getActivoFijoRegistros(
+        @Query("inventario_id") inventarioId: Long,
+    ): Response<List<ActivoFijoRegistroDto>>
+
     @POST("activo-fijo/upload")
     suspend fun uploadActivoFijo(@Body request: ActivoFijoUploadRequest): Response<UploadResponse>
 

@@ -32,6 +32,12 @@ interface RegistroDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertActivoFijo(registro: ActivoFijoRegistroEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllActivoFijo(registros: List<ActivoFijoRegistroEntity>)
+
+    @Query("DELETE FROM activo_fijo_registros WHERE session_id = :sessionId AND sincronizado = 1")
+    suspend fun deleteSyncedActivoFijoBySession(sessionId: Long)
+
     @Update
     suspend fun updateActivoFijo(registro: ActivoFijoRegistroEntity)
 

@@ -6,8 +6,10 @@ import com.seretail.inventarios.data.local.dao.EmpresaDao
 import com.seretail.inventarios.data.local.dao.InventarioDao
 import com.seretail.inventarios.data.local.dao.LoteDao
 import com.seretail.inventarios.data.local.dao.ProductoDao
+import com.seretail.inventarios.data.local.dao.RegistroDao
 import com.seretail.inventarios.data.local.dao.SucursalDao
 import com.seretail.inventarios.data.local.entity.ActivoFijoProductoEntity
+import com.seretail.inventarios.data.local.entity.ActivoFijoRegistroEntity
 import com.seretail.inventarios.data.local.entity.ActivoFijoSessionEntity
 import com.seretail.inventarios.data.local.entity.EmpresaEntity
 import com.seretail.inventarios.data.local.entity.InventarioEntity
@@ -31,6 +33,7 @@ class SyncRepository @Inject constructor(
     private val inventarioDao: InventarioDao,
     private val activoFijoDao: ActivoFijoDao,
     private val activoFijoProductoDao: ActivoFijoProductoDao,
+    private val registroDao: RegistroDao,
     private val preferencesManager: PreferencesManager,
 ) {
     suspend fun syncEmpresas(): Result<Int> {
@@ -249,6 +252,48 @@ class SyncRepository @Inject constructor(
                 page++
             }
             Result.success(totalInserted)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun syncActivoFijoRegistros(sessionId: Long): Result<Int> {
+        return try {
+            val response = apiService.getActivoFijoRegistros(sessionId)
+            if (response.isSuccessful) {
+                val serverRegistros = response.body() ?: emptyList()
+                // Delete previously synced server registros (keep local unsynced ones)
+                registroDao.deleteSyncedActivoFijoBySession(sessionId)
+                // Insert server registros as already synced
+                val entities = serverRegistros.map {
+                    ActivoFijoRegistroEntity(
+                        serverId = it.id,
+                        sessionId = sessionId,
+                        codigoBarras = it.codigo1,
+                        descripcion = it.descripcion,
+                        categoria = it.categoria,
+                        serie = it.nSerie,
+                        ubicacion = it.ubicacion1,
+                        comentarios = it.observaciones,
+                        statusId = when {
+                            it.traspasado == true -> 4
+                            else -> 1 // Found
+                        },
+                        imagen1 = it.imagen1,
+                        imagen2 = it.imagen2,
+                        imagen3 = it.imagen3,
+                        latitud = it.latitud,
+                        longitud = it.longitud,
+                        sincronizado = true,
+                        fechaCaptura = it.createdAt,
+                        usuarioId = it.usuarioId,
+                    )
+                }
+                registroDao.insertAllActivoFijo(entities)
+                Result.success(entities.size)
+            } else {
+                Result.failure(Exception("Error al sincronizar registros"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

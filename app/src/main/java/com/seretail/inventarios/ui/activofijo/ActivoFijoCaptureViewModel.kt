@@ -140,6 +140,12 @@ class ActivoFijoCaptureViewModel @Inject constructor(
                 }
             } catch (_: Exception) {}
         }
+        // Sync existing registros from server (so pending count is accurate)
+        viewModelScope.launch {
+            try {
+                syncRepository.syncActivoFijoRegistros(sessionId)
+            } catch (_: Exception) {}
+        }
         // Sync and observe catalog (pending assets)
         viewModelScope.launch {
             try {

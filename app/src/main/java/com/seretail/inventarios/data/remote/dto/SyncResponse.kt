@@ -105,6 +105,30 @@ data class ActivoFijoProductoDto(
 )
 
 @JsonClass(generateAdapter = true)
+data class ActivoFijoRegistroDto(
+    val id: Long,
+    @Json(name = "inventario_id") val inventarioId: Long,
+    @Json(name = "codigo_1") val codigo1: String,
+    @Json(name = "codigo_2") val codigo2: String? = null,
+    @Json(name = "codigo_3") val codigo3: String? = null,
+    @Json(name = "tag_rfid") val tagRfid: String? = null,
+    @Json(name = "n_serie") val nSerie: String? = null,
+    val descripcion: String? = null,
+    val categoria: String? = null,
+    @Json(name = "nombre_almacen") val nombreAlmacen: String? = null,
+    @Json(name = "ubicacion_1") val ubicacion1: String? = null,
+    val observaciones: String? = null,
+    val imagen1: String? = null,
+    val imagen2: String? = null,
+    val imagen3: String? = null,
+    val traspasado: Boolean? = false,
+    val latitud: Double? = null,
+    val longitud: Double? = null,
+    @Json(name = "created_at") val createdAt: String? = null,
+    @Json(name = "usuario_id") val usuarioId: Long? = null,
+)
+
+@JsonClass(generateAdapter = true)
 data class PaginatedResponse<T>(
     val data: List<T>,
     @Json(name = "current_page") val currentPage: Int? = null,

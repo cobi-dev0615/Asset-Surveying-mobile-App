@@ -70,6 +70,11 @@ data class ActivoFijoCaptureUiState(
     val catalogProducts: List<ActivoFijoProductoEntity> = emptyList(),
     val pendingCount: Int = 0,
     val isSyncingCatalog: Boolean = false,
+    // Area/Category navigation for pending assets
+    val catalogAreas: List<String> = emptyList(),
+    val selectedCatalogArea: String? = null,
+    val catalogCategoriesForArea: List<String> = emptyList(),
+    val selectedCatalogCategory: String? = null,
 )
 
 @HiltViewModel
@@ -164,11 +169,13 @@ class ActivoFijoCaptureViewModel @Inject constructor(
                         val codes = listOfNotNull(p.codigo1, p.codigo2, p.codigo3)
                         codes.none { it in capturedBarcodes }
                     }
+                    val areas = pending.mapNotNull { it.categoria1 }.distinct().sorted()
                     _uiState.update {
                         it.copy(
                             catalogProducts = productos,
                             catalogCount = productos.size,
                             pendingCount = pending.size,
+                            catalogAreas = areas,
                         )
                     }
                 }
@@ -181,7 +188,55 @@ class ActivoFijoCaptureViewModel @Inject constructor(
         val capturedBarcodes = state.registros.map { it.codigoBarras }.toSet()
         return state.catalogProducts.filter { p ->
             val codes = listOfNotNull(p.codigo1, p.codigo2, p.codigo3)
-            codes.none { it in capturedBarcodes }
+            val isPending = codes.none { it in capturedBarcodes }
+            val matchesArea = state.selectedCatalogArea == null || p.categoria1 == state.selectedCatalogArea
+            val matchesCat = state.selectedCatalogCategory == null || p.categoria2 == state.selectedCatalogCategory
+            isPending && matchesArea && matchesCat
+        }
+    }
+
+    fun selectCatalogArea(area: String?) {
+        val products = _uiState.value.catalogProducts
+        val categories = if (area != null) {
+            products.filter { it.categoria1 == area }
+                .mapNotNull { it.categoria2 }
+                .distinct().sorted()
+        } else emptyList()
+        _uiState.update {
+            it.copy(
+                selectedCatalogArea = area,
+                selectedCatalogCategory = null,
+                catalogCategoriesForArea = categories,
+            )
+        }
+    }
+
+    fun selectCatalogCategory(category: String?) {
+        _uiState.update { it.copy(selectedCatalogCategory = category) }
+    }
+
+    fun clearCatalogFilters() {
+        _uiState.update {
+            it.copy(
+                selectedCatalogArea = null,
+                selectedCatalogCategory = null,
+                catalogCategoriesForArea = emptyList(),
+            )
+        }
+    }
+
+    fun selectPendingAsset(producto: ActivoFijoProductoEntity) {
+        _uiState.update {
+            it.copy(
+                barcode = producto.codigo1 ?: "",
+                description = producto.descripcion ?: "",
+                category = producto.categoria2 ?: producto.categoria1 ?: "",
+                brand = producto.marca ?: "",
+                model = producto.modelo ?: "",
+                serie = producto.nSerie ?: "",
+                location = producto.categoria1 ?: "",
+                tagNuevo = producto.tagRfid ?: "",
+            )
         }
     }
 

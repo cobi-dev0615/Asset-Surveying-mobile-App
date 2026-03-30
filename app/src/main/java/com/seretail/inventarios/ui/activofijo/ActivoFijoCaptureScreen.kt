@@ -579,7 +579,7 @@ fun ActivoFijoCaptureScreen(
                             }
                         }
                     } else {
-                        // Pending products list
+                        // Pending products with Area → Category → List navigation
                         if (state.isSyncingCatalog) {
                             LinearProgressIndicator(
                                 modifier = Modifier.fillMaxWidth().height(3.dp),
@@ -587,29 +587,126 @@ fun ActivoFijoCaptureScreen(
                                 trackColor = SERBlue.copy(alpha = 0.15f),
                             )
                         }
-                        val pendingProducts = viewModel.getPendingProducts()
-                        if (pendingProducts.isEmpty() && !state.isSyncingCatalog) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center,
-                            ) {
+
+                        if (state.selectedCatalogArea == null) {
+                            // Step 1: Area selection
+                            if (state.catalogAreas.isEmpty() && !state.isSyncingCatalog) {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        if (state.catalogCount == 0) "No hay catálogo de activos para esta sesión"
+                                        else "Todos los activos han sido capturados",
+                                        color = TextMuted,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                }
+                            } else {
                                 Text(
-                                    if (state.catalogCount == 0) "No hay catálogo de activos para esta sesión"
-                                    else "Todos los activos han sido capturados",
-                                    color = TextMuted,
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    "Selecciona el área donde capturar",
+                                    color = TextSecondary,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                                 )
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp),
+                                ) {
+                                    val capturedBarcodes = state.registros.map { it.codigoBarras }.toSet()
+                                    items(state.catalogAreas) { area ->
+                                        val areaCount = state.catalogProducts.count { p ->
+                                            p.categoria1 == area &&
+                                                listOfNotNull(p.codigo1, p.codigo2, p.codigo3)
+                                                    .none { it in capturedBarcodes }
+                                        }
+                                        Card(
+                                            onClick = { viewModel.selectCatalogArea(area) },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                                            shape = RoundedCornerShape(10.dp),
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically,
+                                            ) {
+                                                Text(area, color = TextPrimary, fontWeight = FontWeight.Medium)
+                                                Text("$areaCount", color = SERBlue, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         } else {
-                            LazyColumn(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(horizontal = 16.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp),
-                                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp),
+                            // Area selected — show back button + category chips + filtered list
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                items(pendingProducts, key = { it.id }) { producto ->
-                                    PendingAssetCard(producto = producto)
+                                TextButton(onClick = { viewModel.clearCatalogFilters() }) {
+                                    Text("← Áreas", color = SERBlue)
+                                }
+                                Text(
+                                    state.selectedCatalogArea ?: "",
+                                    color = TextPrimary,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+
+                            // Category chips within area
+                            if (state.catalogCategoriesForArea.isNotEmpty()) {
+                                LazyRow(
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    item {
+                                        FilterChip(
+                                            selected = state.selectedCatalogCategory == null,
+                                            onClick = { viewModel.selectCatalogCategory(null) },
+                                            label = { Text("Todos") },
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = SERBlue.copy(alpha = 0.2f),
+                                                selectedLabelColor = SERBlue,
+                                                labelColor = TextMuted,
+                                            ),
+                                        )
+                                    }
+                                    items(state.catalogCategoriesForArea) { cat ->
+                                        FilterChip(
+                                            selected = state.selectedCatalogCategory == cat,
+                                            onClick = { viewModel.selectCatalogCategory(cat) },
+                                            label = { Text(cat) },
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = SERBlue.copy(alpha = 0.2f),
+                                                selectedLabelColor = SERBlue,
+                                                labelColor = TextMuted,
+                                            ),
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Filtered pending list
+                            val pendingProducts = viewModel.getPendingProducts()
+                            if (pendingProducts.isEmpty()) {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text("Todos los activos de esta área han sido capturados", color = TextMuted)
+                                }
+                            } else {
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp),
+                                ) {
+                                    items(pendingProducts, key = { it.id }) { producto ->
+                                        PendingAssetCard(
+                                            producto = producto,
+                                            onClick = {
+                                                viewModel.selectPendingAsset(producto)
+                                                showForm = true
+                                            },
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -766,8 +863,12 @@ private fun StatBadge(label: String, value: String, color: Color, modifier: Modi
 }
 
 @Composable
-private fun PendingAssetCard(producto: com.seretail.inventarios.data.local.entity.ActivoFijoProductoEntity) {
+private fun PendingAssetCard(
+    producto: com.seretail.inventarios.data.local.entity.ActivoFijoProductoEntity,
+    onClick: () -> Unit = {},
+) {
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = DarkSurface),
         shape = RoundedCornerShape(10.dp),

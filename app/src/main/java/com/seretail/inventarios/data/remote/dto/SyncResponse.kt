@@ -105,7 +105,7 @@ data class ActivoFijoProductoDto(
 )
 
 @JsonClass(generateAdapter = true)
-data class ActivoFijoRegistroDto(
+data class ActivoFijoRegistroDownloadDto(
     val id: Long,
     @Json(name = "inventario_id") val inventarioId: Long,
     @Json(name = "codigo_1") val codigo1: String,

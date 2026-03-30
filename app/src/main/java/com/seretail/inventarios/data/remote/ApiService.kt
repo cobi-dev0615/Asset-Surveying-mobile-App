@@ -1,6 +1,7 @@
 package com.seretail.inventarios.data.remote
 
 import com.seretail.inventarios.data.remote.dto.ActivoFijoProductoDto
+import com.seretail.inventarios.data.remote.dto.ActivoFijoRegistroDownloadDto
 import com.seretail.inventarios.data.remote.dto.DashboardStatsDto
 import com.seretail.inventarios.data.remote.dto.CreateSessionRequest
 import com.seretail.inventarios.data.remote.dto.ActivoFijoSessionDto
@@ -95,7 +96,7 @@ interface ApiService {
     @GET("activo-fijo/registros")
     suspend fun getActivoFijoRegistros(
         @Query("inventario_id") inventarioId: Long,
-    ): Response<List<ActivoFijoRegistroDto>>
+    ): Response<List<ActivoFijoRegistroDownloadDto>>
 
     @POST("activo-fijo/upload")
     suspend fun uploadActivoFijo(@Body request: ActivoFijoUploadRequest): Response<UploadResponse>

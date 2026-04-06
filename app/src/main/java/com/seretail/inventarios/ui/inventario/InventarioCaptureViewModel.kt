@@ -51,6 +51,11 @@ data class InventarioCaptureUiState(
     val totalQuantity: Int = 0,
     val totalFactor: Int = 0,
     val registroCount: Int = 0,
+    // Pieza a pieza (auto-save on scan)
+    val piezaAPieza: Boolean = false,
+    // Sync status
+    val isSyncing: Boolean = false,
+    val pendingSyncCount: Int = 0,
 )
 
 @HiltViewModel
@@ -195,6 +200,11 @@ class InventarioCaptureViewModel @Inject constructor(
                     showLoteSuggestions = lotes.isNotEmpty(),
                 )
             }
+
+            // Pieza a pieza: auto-save immediately after scan
+            if (_uiState.value.piezaAPieza) {
+                saveRegistro()
+            }
         }
     }
 
@@ -228,9 +238,13 @@ class InventarioCaptureViewModel @Inject constructor(
             inventarioRepository.saveRegistro(registro)
             feedbackManager.playSuccess()
             clearForm()
-            _uiState.value = _uiState.value.copy(message = "Registro guardado")
-            // Trigger background sync to upload to server
-            com.seretail.inventarios.sync.SyncScheduler.syncNow(appContext)
+            val pending = (_uiState.value.pendingSyncCount) + 1
+            _uiState.update {
+                it.copy(
+                    message = if (it.piezaAPieza) null else "Registro guardado",
+                    pendingSyncCount = pending,
+                )
+            }
         }
     }
 
@@ -258,4 +272,29 @@ class InventarioCaptureViewModel @Inject constructor(
     }
 
     fun clearMessage() { _uiState.value = _uiState.value.copy(message = null) }
+
+    fun togglePiezaAPieza() {
+        _uiState.update { it.copy(piezaAPieza = !it.piezaAPieza) }
+    }
+
+    fun syncToServer() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSyncing = true) }
+            try {
+                val result = inventarioRepository.uploadPendingRegistros()
+                val count = result.getOrDefault(0)
+                _uiState.update {
+                    it.copy(
+                        isSyncing = false,
+                        message = if (count > 0) "$count registros sincronizados" else "No hay registros pendientes",
+                        pendingSyncCount = 0,
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(isSyncing = false, message = "Error de sincronización: ${e.message}")
+                }
+            }
+        }
+    }
 }

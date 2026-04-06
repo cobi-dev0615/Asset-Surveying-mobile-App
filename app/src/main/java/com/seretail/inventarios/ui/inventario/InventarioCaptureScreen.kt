@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Warning
@@ -104,6 +105,22 @@ fun InventarioCaptureScreen(
                             Icon(Icons.Default.FileDownload, contentDescription = "Exportar", tint = TextMuted)
                         }
                     }
+                    // Sync to server button
+                    if (state.isSyncing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = SERBlue,
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        IconButton(onClick = viewModel::syncToServer) {
+                            Icon(
+                                Icons.Default.CloudUpload,
+                                contentDescription = "Sincronizar",
+                                tint = if (state.pendingSyncCount > 0) SERBlue else TextMuted,
+                            )
+                        }
+                    }
                     Text(
                         text = "${state.capturedCount}",
                         style = MaterialTheme.typography.titleMedium,
@@ -126,22 +143,40 @@ fun InventarioCaptureScreen(
         },
         containerColor = DarkBackground,
         bottomBar = {
-            // Bottom stats bar
-            if (state.registros.isNotEmpty()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(DarkSurface)
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(DarkSurface)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Stats
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     StatItem(label = "CONTEO", value = "${state.totalQuantity}")
                     StatItem(label = "REGISTROS", value = "${state.registroCount}")
                     if (state.showFactor) {
                         StatItem(label = "FACTOR", value = "${state.totalFactor}")
                     }
                 }
+                // Pieza a pieza toggle
+                FilterChip(
+                    selected = state.piezaAPieza,
+                    onClick = viewModel::togglePiezaAPieza,
+                    label = {
+                        Text(
+                            "1x1",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = SERBlue,
+                        selectedLabelColor = Color.White,
+                        containerColor = DarkSurfaceVariant,
+                        labelColor = TextMuted,
+                    ),
+                )
             }
         },
     ) { padding ->

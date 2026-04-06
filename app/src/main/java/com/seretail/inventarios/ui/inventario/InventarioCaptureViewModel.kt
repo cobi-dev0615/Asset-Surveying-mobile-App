@@ -9,6 +9,7 @@ import com.seretail.inventarios.data.local.entity.InventarioEntity
 import com.seretail.inventarios.data.local.entity.LoteEntity
 import com.seretail.inventarios.data.repository.AuthRepository
 import com.seretail.inventarios.data.repository.InventarioRepository
+import com.seretail.inventarios.data.repository.SyncRepository
 import com.seretail.inventarios.util.FeedbackManager
 import com.seretail.inventarios.util.HardwareScannerBus
 import com.seretail.inventarios.util.PreferencesManager
@@ -61,6 +62,7 @@ data class InventarioCaptureUiState(
 @HiltViewModel
 class InventarioCaptureViewModel @Inject constructor(
     private val inventarioRepository: InventarioRepository,
+    private val syncRepository: SyncRepository,
     private val authRepository: AuthRepository,
     private val feedbackManager: FeedbackManager,
     private val loteDao: LoteDao,
@@ -112,6 +114,11 @@ class InventarioCaptureViewModel @Inject constructor(
                 }
                 if (session != null) {
                     preferencesManager.saveActiveInventarioSession(sessionId)
+                    // Sync product catalog from server for this empresa
+                    try {
+                        syncRepository.syncProductos(session.empresaId)
+                        syncRepository.syncLotes(session.empresaId)
+                    } catch (_: Exception) {}
                 }
             } catch (e: Exception) {
                 _uiState.update {

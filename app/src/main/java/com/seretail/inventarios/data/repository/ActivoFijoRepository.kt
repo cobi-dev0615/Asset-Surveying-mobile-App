@@ -111,6 +111,7 @@ class ActivoFijoRepository @Inject constructor(
 
         val grouped = unsynced.groupBy { it.sessionId }
         var totalUploaded = 0
+        var lastError: String? = null
 
         for ((sessionId, registros) in grouped) {
             try {
@@ -146,12 +147,21 @@ class ActivoFijoRepository @Inject constructor(
                         registroDao.updateActivoFijo(reg.copy(sincronizado = true))
                     }
                     totalUploaded += registros.size
+                } else {
+                    val errBody = try { response.errorBody()?.string() } catch (_: Exception) { null }
+                    lastError = "HTTP ${response.code()}: ${errBody?.take(200) ?: response.message()}"
+                    android.util.Log.e("ActivoFijoUpload", "Failed for session $sessionId: $lastError")
                 }
-            } catch (_: Exception) {
-                // Will retry on next sync
+            } catch (e: Exception) {
+                lastError = "${e.javaClass.simpleName}: ${e.message}"
+                android.util.Log.e("ActivoFijoUpload", "Exception for session $sessionId", e)
             }
         }
-        return Result.success(totalUploaded)
+        return if (lastError != null && totalUploaded == 0) {
+            Result.failure(Exception(lastError))
+        } else {
+            Result.success(totalUploaded)
+        }
     }
 
     suspend fun uploadPendingNoEncontrados(): Result<Int> {

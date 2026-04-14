@@ -45,7 +45,7 @@ interface RegistroDao {
     suspend fun deleteActivoFijo(id: Long)
 
     // Inventario Registros
-    @Query("SELECT * FROM inventario_registros WHERE session_id = :sessionId ORDER BY id DESC")
+    @Query("SELECT * FROM inventario_registros WHERE session_id = :sessionId AND sincronizado = 0 ORDER BY id DESC")
     fun observeInventarioBySession(sessionId: Long): Flow<List<InventarioRegistroEntity>>
 
     @Query("SELECT * FROM inventario_registros WHERE session_id = :sessionId ORDER BY id DESC")
@@ -59,6 +59,9 @@ interface RegistroDao {
 
     @Query("SELECT * FROM inventario_registros WHERE sincronizado = 0")
     suspend fun getUnsyncedInventario(): List<InventarioRegistroEntity>
+
+    @Query("DELETE FROM inventario_registros WHERE sincronizado = 1")
+    suspend fun deleteSyncedInventario()
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertInventario(registro: InventarioRegistroEntity): Long

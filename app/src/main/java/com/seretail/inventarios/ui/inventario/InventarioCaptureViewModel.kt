@@ -289,14 +289,25 @@ class InventarioCaptureViewModel @Inject constructor(
             _uiState.update { it.copy(isSyncing = true) }
             try {
                 val result = inventarioRepository.uploadPendingRegistros()
-                val count = result.getOrDefault(0)
-                _uiState.update {
-                    it.copy(
-                        isSyncing = false,
-                        message = if (count > 0) "$count registros sincronizados" else "No hay registros pendientes",
-                        pendingSyncCount = 0,
-                    )
-                }
+                result.fold(
+                    onSuccess = { count ->
+                        _uiState.update {
+                            it.copy(
+                                isSyncing = false,
+                                message = if (count > 0) "$count registros sincronizados" else "No hay registros pendientes",
+                                pendingSyncCount = 0,
+                            )
+                        }
+                    },
+                    onFailure = { e ->
+                        _uiState.update {
+                            it.copy(
+                                isSyncing = false,
+                                message = "Error al sincronizar: ${e.message?.take(150)}",
+                            )
+                        }
+                    },
+                )
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(isSyncing = false, message = "Error de sincronización: ${e.message}")
